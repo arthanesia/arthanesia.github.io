@@ -95,6 +95,7 @@ private fun ArthanesiaApp() {
     var authBusy by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf("") }
     var syncStatus by remember { mutableStateOf("Data tersimpan di perangkat") }
+    var fxMarketData by remember { mutableStateOf<MarketData?>(null) }
     var dark by remember { mutableStateOf(appDatabase.setting("dark") == "true") }
     var page by remember { mutableStateOf(Page.HOME) }
     var owner by remember { mutableStateOf(appDatabase.setting("owner")) }
@@ -327,6 +328,13 @@ private fun ArthanesiaApp() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            runCatching { SupabaseApi.fetchMarketData() }.onSuccess { fxMarketData = it }
+            delay(15 * 60 * 1000L)
+        }
+    }
+
     LaunchedEffect(cloudSession?.userId, entries) {
         val current = cloudSession ?: return@LaunchedEffect
         try {
@@ -355,7 +363,7 @@ private fun ArthanesiaApp() {
         )
     }
     if (showTransaction) {
-        TransactionDialog(initialIncome, voiceDraft, parsedAmount,
+        TransactionDialog(initialIncome, voiceDraft, parsedAmount, currency, fxMarketData,
             onDismiss = { showTransaction = false; voiceDraft = ""; parsedAmount = "" }) {
             appDatabase.saveTransaction(it)
             entries = appDatabase.transactions()
@@ -1009,12 +1017,27 @@ private fun EntryMethodDialog(onDismiss: () -> Unit, onManual: () -> Unit, onRec
 }
 
 @Composable
-private fun TransactionDialog(initialIncome: Boolean, initialDescription: String, initialAmount: String, onDismiss: () -> Unit, onSave: (MoneyEntry) -> Unit) {
+private fun TransactionDialog(
+    initialIncome: Boolean,
+    initialDescription: String,
+    initialAmount: String,
+    defaultCurrency: String,
+    marketData: MarketData?,
+    onDismiss: () -> Unit,
+    onSave: (MoneyEntry) -> Unit
+) {
     var income by remember { mutableStateOf(initialIncome) }
     var title by remember { mutableStateOf(initialDescription) }
     var amount by remember { mutableStateOf(initialAmount) }
     var category by remember { mutableStateOf("Penjualan") }
-    var expanded by remember { mutableStateOf(false) }
+    var selectedCurrency by remember { mutableStateOf(defaultCurrency) }
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var currencyExpanded by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    val currencies = listOf("IDR", "USD", "EUR", "GBP", "JPY", "SGD", "AUD", "MYR")
+    val unitsPerIdr = marketData?.ratesPerIdr?.get(selectedCurrency) ?: if (selectedCurrency == "IDR") 1.0 else 0.0
+    val rateToIdr = if (selectedCurrency == "IDR") 1.0 else if (unitsPerIdr > 0) 1.0 / unitsPerIdr else 0.0
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Catat transaksi", fontWeight = FontWeight.Bold) },
@@ -1024,27 +1047,80 @@ private fun TransactionDialog(initialIncome: Boolean, initialDescription: String
                     FilterChip(selected = income, onClick = { income = true }, label = { Text("Pemasukan") })
                     FilterChip(selected = !income, onClick = { income = false }, label = { Text("Pengeluaran") })
                 }
-                OutlinedTextField(title, { title = it }, label = { Text("Deskripsi") }, singleLine = true)
-                OutlinedTextField(amount, { amount = it }, label = { Text("Nominal IDR") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                OutlinedTextField(title, { title = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Box {
-                    OutlinedButton(onClick = { expanded = true }) { Text(category); Icon(Icons.Default.ExpandMore, null) }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        listOf("Penjualan", "Operasional", "Marketing", "Transportasi", "Gaji", "Investasi", "Lainnya").forEach {
-                            DropdownMenuItem(text = { Text(it) }, onClick = { category = it; expanded = false })
+                    OutlinedButton(onClick = { currencyExpanded = true }) {
+                        Text("Mata uang: $selectedCurrency")
+                        Icon(Icons.Default.ExpandMore, null)
+                    }
+                    DropdownMenu(expanded = currencyExpanded, onDismissRequest = { currencyExpanded = false }) {
+                        currencies.forEach {
+                            DropdownMenuItem(
+                                text = { Text(it) },
+                                onClick = { selectedCurrency = it; currencyExpanded = false; error = "" }
+                            )
                         }
                     }
                 }
+                OutlinedTextField(
+                    amount,
+                    { amount = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }; error = "" },
+                    label = { Text("Nominal $selectedCurrency") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+                if (selectedCurrency != "IDR") {
+                    Text(
+                        if (rateToIdr > 0) "Kurs referensi saat ini: 1 $selectedCurrency ≈ ${rupiah(rateToIdr.toLong())} · konversi disimpan saat transaksi dibuat"
+                        else "Memuat kurs referensi. Transaksi mata uang asing belum dapat disimpan.",
+                        color = Muted, fontSize = 9.sp
+                    )
+                }
+                Box {
+                    OutlinedButton(onClick = { categoryExpanded = true }) { Text(category); Icon(Icons.Default.ExpandMore, null) }
+                    DropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
+                        listOf("Penjualan", "Operasional", "Marketing", "Transportasi", "Gaji", "Investasi", "Lainnya").forEach {
+                            DropdownMenuItem(text = { Text(it) }, onClick = { category = it; categoryExpanded = false })
+                        }
+                    }
+                }
+                if (error.isNotBlank()) Text(error, color = Red, fontSize = 10.sp)
             }
         },
         confirmButton = {
             Button(onClick = {
-                val value = amount.toLongOrNull()
-                if (title.isNotBlank() && value != null && value > 0) onSave(MoneyEntry(title = title, category = category, amount = value, income = income))
+                val original = amount.filter { it.isDigit() }.toDoubleOrNull()
+                if (title.isBlank() || original == null || original <= 0) {
+                    error = "Isi deskripsi dan nominal yang valid."
+                    return@Button
+                }
+                if (rateToIdr <= 0) {
+                    error = "Kurs $selectedCurrency belum tersedia. Coba lagi saat tersambung internet."
+                    return@Button
+                }
+                val baseIdr = (original * rateToIdr).toLong()
+                if (baseIdr <= 0) {
+                    error = "Hasil konversi tidak valid."
+                    return@Button
+                }
+                onSave(
+                    MoneyEntry(
+                        title = title,
+                        category = category,
+                        amount = baseIdr,
+                        income = income,
+                        currency = selectedCurrency,
+                        originalAmount = original,
+                        fxRateToIdr = rateToIdr
+                    )
+                )
             }) { Text("Simpan") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } }
     )
 }
+
 @Composable
 private fun GoalDialog(onDismiss: () -> Unit, onSave: (SavingGoal) -> Unit) {
     var name by remember { mutableStateOf("") }
