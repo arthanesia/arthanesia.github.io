@@ -11,7 +11,8 @@ create table if not exists public.profiles (
   timezone text not null default 'Asia/Jakarta',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  business_name text not null default ''
+  business_name text not null default '',
+  default_currency text not null default 'IDR'
 );
 
 create table if not exists public.transactions (
