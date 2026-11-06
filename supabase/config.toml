@@ -1,8 +1,11 @@
-[functions.artha-assistant]
-verify_jwt = true
-
 [functions.admin-dashboard]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-support-transactions]
-verify_jwt = true
+verify_jwt = false
+
+[functions.artha-assistant]
+verify_jwt = false
+
+[functions.market-data]
+verify_jwt = false
