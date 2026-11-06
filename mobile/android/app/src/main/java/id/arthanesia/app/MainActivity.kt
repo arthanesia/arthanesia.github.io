@@ -1032,14 +1032,14 @@ private fun ProfileScreen(owner: String, business: String, currency: String, dar
         }
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp)) {
-                Text("Preferensi mata uang", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Mata uang default pencatatan", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Box {
                     OutlinedButton(onClick = { menu = true }) { Text(currency); Icon(Icons.Default.ExpandMore, null) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         listOf("IDR", "USD", "EUR", "GBP", "JPY").forEach { DropdownMenuItem(text = { Text(it) }, onClick = { onCurrency(it); menu = false }) }
                     }
                 }
-                Text("Pilihan mata uang saat ini baru mengubah preferensi. Kurs live dan konversi belum diaktifkan.", color = Muted, fontSize = 10.sp)
+                Text("Mata uang ini menjadi pilihan awal saat membuat transaksi. Setiap transaksi menyimpan nominal asli, kurs saat pencatatan, dan nilai konversi IDR agar histori tidak berubah saat kurs diperbarui.", color = Muted, fontSize = 10.sp)
             }
         }
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
