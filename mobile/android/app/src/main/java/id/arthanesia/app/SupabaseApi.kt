@@ -243,12 +243,12 @@ internal object SupabaseApi {
             merged
         }
 
-    suspend fun deleteTransaction(session: CloudSession, id: Long) = withContext(Dispatchers.IO) {
+    suspend fun deleteTransaction(session: CloudSession, id: Long): Unit = withContext(Dispatchers.IO) {
         val result = request("DELETE", "/rest/v1/transactions?client_ref=eq.${session.userId}-$id", bearer = session.accessToken)
         if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Transaksi lokal dihapus, tetapi penghapusan cloud gagal."))
     }
 
-    suspend fun signOut(session: CloudSession) = withContext(Dispatchers.IO) {
+    suspend fun signOut(session: CloudSession): Unit = withContext(Dispatchers.IO) {
         request("POST", "/auth/v1/logout", bearer = session.accessToken)
     }
 
