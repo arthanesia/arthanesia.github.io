@@ -113,7 +113,7 @@ async function loadProfile(){
  profile=data||{id:user.id,full_name:"",business_name:"",base_currency:"IDR"};
  $("profileName").value=profile.full_name||user.user_metadata?.full_name||"";
  $("profileBusiness").value=profile.business_name||user.user_metadata?.business_name||"";
- $("profileCurrency").value=profile.base_currency||"IDR";
+ $("profileCurrency").value=profile.default_currency||"IDR";
  $("txCurrency").value=profile.base_currency||"IDR";
  refreshFxLabel();
  $("workspaceName").textContent=profile.business_name||profile.full_name||"Ruang kerja keuangan";
@@ -207,10 +207,10 @@ $("exportCsv").addEventListener("click",()=>{
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Arthanesia-Pembukuan.csv";a.click();URL.revokeObjectURL(a.href);
 });
 $("saveProfile").addEventListener("click",async()=>{
- const payload={id:user.id,full_name:$("profileName").value.trim(),business_name:$("profileBusiness").value.trim(),base_currency:$("profileCurrency").value};
+ const payload={id:user.id,full_name:$("profileName").value.trim(),business_name:$("profileBusiness").value.trim(),base_currency:"IDR",default_currency:$("profileCurrency").value};
  const {error}=await sb.from("profiles").upsert(payload,{onConflict:"id"});
  if(error){$("profileMessage").textContent=error.message;return;}
- profile=payload;$("txCurrency").value=payload.base_currency;refreshFxLabel();$("workspaceName").textContent=payload.business_name||payload.full_name;$("profileMessage").textContent="Profil berhasil disimpan.";
+ profile=payload;$("txCurrency").value=payload.default_currency;refreshFxLabel();$("workspaceName").textContent=payload.business_name||payload.full_name;$("profileMessage").textContent="Profil berhasil disimpan.";
 });
 $("askAi").addEventListener("click",async()=>{
  hide("aiError");
