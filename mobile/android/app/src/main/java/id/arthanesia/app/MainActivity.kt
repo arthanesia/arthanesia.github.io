@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -740,48 +741,73 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
 
 @Composable
 private fun ZakatScreen() {
-    var goldIdrPerGram by remember { mutableStateOf(0.0) }
+    var market by remember { mutableStateOf<MarketData?>(null) }
     var loading by remember { mutableStateOf(true) }
+    var marketError by remember { mutableStateOf("") }
     var assets by remember { mutableStateOf("") }
     var debts by remember { mutableStateOf("") }
     var haul by remember { mutableStateOf(true) }
+
     LaunchedEffect(Unit) {
-        runCatching {
-            val fx = withContext(Dispatchers.IO) {
-                val f = (URL("https://open.er-api.com/v6/latest/USD").openConnection() as HttpURLConnection).apply { connectTimeout=8000; readTimeout=8000 }
-                JSONObject(f.inputStream.bufferedReader().use { it.readText() })
-            }
-            val usdIdr = fx.getJSONObject("rates").optDouble("IDR", 0.0)
-            val g = withContext(Dispatchers.IO) {
-                val x = (URL("https://api.gold-api.com/price/XAU").openConnection() as HttpURLConnection).apply { connectTimeout=8000; readTimeout=8000 }
-                JSONObject(x.inputStream.bufferedReader().use { it.readText() })
-            }
-            goldIdrPerGram = g.optDouble("price", 0.0) * usdIdr / 31.1034768
-        }.also { loading=false }
+        while (true) {
+            runCatching { SupabaseApi.fetchMarketData() }
+                .onSuccess {
+                    market = it
+                    marketError = ""
+                }
+                .onFailure {
+                    marketError = "Feed harga belum tersedia. Periksa koneksi."
+                }
+            loading = false
+            delay(15 * 60 * 1000L)
+        }
     }
-    val nisab = goldIdrPerGram * 250.0
+
+    val goldPerGram = market?.goldIdrPerGram ?: 0.0
+    val nisab = goldPerGram * 250.0
     val netAssets = (parseLong(assets) - parseLong(debts)).coerceAtLeast(0L)
     val wajib = nisab > 0 && netAssets >= nisab && haul
+
     ScreenColumn {
-        SectionTitle("Zakat Penghasilan", "Nisab 250 gram emas · periode tahunan")
-        Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=BrandDark)) {
-            Column(Modifier.padding(18.dp)) {
-                Text("HARGA EMAS REFERENSI",color=Color.White.copy(.7f),fontSize=9.sp,fontWeight=FontWeight.Bold)
-                Text(if(loading)"Memuat harga…" else "${goldIdrPerGram.let { rupiah(it.toLong()) }} / gram",color=Color.White,fontSize=22.sp,fontWeight=FontWeight.ExtraBold)
-                Text(if(loading)"Mengambil feed harga saat aplikasi dibuka." else "Nisab 250 g = ${rupiah(nisab.toLong())}",color=Color.White.copy(.75f),fontSize=10.sp)
+        SectionTitle("Zakat Penghasilan", "Nisab referensi Arthanesia: 250 gram emas")
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("HARGA EMAS SPOT · IDR", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (loading && market == null) "Memuat harga..." else if (goldPerGram > 0) "${rupiah(goldPerGram.toLong())} / gram" else "Harga tidak tersedia",
+                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    if (nisab > 0) "Nilai nisab 250 g: ${rupiah(nisab.toLong())}" else "Nilai nisab belum dapat dihitung",
+                    color = Color.White.copy(.78f), fontSize = 10.sp
+                )
+                Text("Sumber: gold-api.com XAU spot · bukan harga retail Antam", color = Color.White.copy(.65f), fontSize = 9.sp)
             }
         }
-        Card(shape=RoundedCornerShape(17.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
-                OutlinedTextField(assets,{assets=it},label={Text("Aset yang menjadi dasar")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true)
-                OutlinedTextField(debts,{debts=it},label={Text("Kewajiban/utang jangka pendek")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true)
-                Row(verticalAlignment=Alignment.CenterVertically){Checkbox(haul,{haul=it});Text("Sudah mencapai haul 1 tahun",fontSize=11.sp)}
-                Text(if(wajib)"Status: WAJIB • estimasi 2,5% = ${rupiah((netAssets*.025).toLong())}" else "Status: belum memenuhi parameter nisab/haul",color=if(wajib)Green else Muted,fontWeight=FontWeight.Bold)
+        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                OutlinedTextField(assets, { assets = it }, label = { Text("Penghasilan/aset yang menjadi dasar (IDR)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                OutlinedTextField(debts, { debts = it }, label = { Text("Pengurang/kewajiban yang relevan (IDR)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(haul, { haul = it })
+                    Text("Sudah memenuhi haul 1 tahun", fontSize = 11.sp)
+                }
+                Text("Dasar bersih: ${rupiah(netAssets)}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (wajib) "Indikator: mencapai nisab dan haul · estimasi 2,5% = ${rupiah((netAssets * .025).toLong())}"
+                    else "Indikator: belum memenuhi nisab dan/atau haul",
+                    color = if (wajib) Green else Muted, fontWeight = FontWeight.Bold, fontSize = 12.sp
+                )
             }
         }
-        Text("Harga emas menggunakan spot XAU sebagai referensi, bukan harga retail Antam. Feed FX pada implementasi ini adalah provider terbaru yang tersedia; bukan tick-by-tick.",fontSize=9.sp,color=Muted)
+        Text(
+            market?.let { "Referensi kurs diperbarui: ${it.fxUpdatedAt.ifBlank { "waktu tidak tersedia" }}. Emas: ${it.goldUpdatedAt.ifBlank { "waktu provider tidak tersedia" }}. Kurs acuan provider diperbarui harian, bukan tick-by-tick." }
+                ?: marketError,
+            fontSize = 9.sp, color = Muted
+        )
     }
 }
+
 private fun parseLong(s:String)=s.replace(Regex("[^0-9]"),"").toLongOrNull()?:0L
 
 @Composable
