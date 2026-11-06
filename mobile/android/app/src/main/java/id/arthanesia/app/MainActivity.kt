@@ -923,6 +923,24 @@ private fun ZakatScreen(entries: List<MoneyEntry>) {
     }
 }
 
+private fun parseCurrencyAmount(raw: String): Double {
+    val value = raw.trim().replace(" ", "")
+    if (value.isBlank()) return 0.0
+    val normalized = when {
+        value.contains(".") && value.contains(",") -> value.replace(".", "").replace(",", ".")
+        value.contains(",") -> {
+            val decimals = value.substringAfterLast(",").length
+            if (decimals in 1..2) value.replace(",", ".") else value.replace(",", "")
+        }
+        value.contains(".") -> {
+            val decimals = value.substringAfterLast(".").length
+            if (decimals == 3) value.replace(".", "") else value
+        }
+        else -> value
+    }
+    return normalized.toDoubleOrNull() ?: 0.0
+}
+
 private fun parseLong(s:String)=s.replace(Regex("[^0-9]"),"").toLongOrNull()?:0L
 
 @Composable
@@ -1194,7 +1212,7 @@ private fun TransactionDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val original = amount.filter { it.isDigit() }.toDoubleOrNull()
+                val original = parseCurrencyAmount(amount)
                 if (title.isBlank() || original == null || original <= 0) {
                     error = "Isi deskripsi dan nominal yang valid."
                     return@Button
