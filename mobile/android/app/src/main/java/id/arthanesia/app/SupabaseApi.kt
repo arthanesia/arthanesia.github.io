@@ -27,6 +27,12 @@ internal data class MarketData(
     val goldUpdatedAt: String
 )
 
+internal data class CloudProfile(
+    val fullName: String,
+    val businessName: String,
+    val baseCurrency: String
+)
+
 internal data class CloudSession(
     val userId: String,
     val email: String,
@@ -165,6 +171,24 @@ internal object SupabaseApi {
         val result = request("POST", "/auth/v1/token?grant_type=refresh_token", body.toString())
         if (result.code !in 200..299) throw IllegalStateException("Sesi berakhir. Silakan masuk kembali.")
         sessionFrom(JSONObject(result.body))
+    }
+
+    suspend fun fetchProfile(session: CloudSession): CloudProfile? = withContext(Dispatchers.IO) {
+        val result = request(
+            "GET",
+            "/rest/v1/profiles?select=full_name,business_name,base_currency&id=eq.${session.userId}&limit=1",
+            bearer = session.accessToken
+        )
+        if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Profil cloud belum dapat dibaca."))
+        val rows = JSONArray(result.body)
+        if (rows.length() == 0) null else {
+            val row = rows.getJSONObject(0)
+            CloudProfile(
+                fullName = row.optString("full_name"),
+                businessName = row.optString("business_name"),
+                baseCurrency = row.optString("base_currency", "IDR")
+            )
+        }
     }
 
     suspend fun saveProfile(session: CloudSession, name: String, business: String, currency: String) =
