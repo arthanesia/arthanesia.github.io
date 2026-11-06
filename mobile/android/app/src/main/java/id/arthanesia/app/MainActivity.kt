@@ -352,7 +352,7 @@ private fun ArthanesiaApp() {
         }
     }
 
-    LaunchedEffect(cloudSession?.userId, entries) {
+    LaunchedEffect(cloudSession?.userId, entries, owner, business, currency) {
         val current = cloudSession ?: return@LaunchedEffect
         try {
             val active = if (current.expiresAt <= System.currentTimeMillis() / 1000 + 90) {
