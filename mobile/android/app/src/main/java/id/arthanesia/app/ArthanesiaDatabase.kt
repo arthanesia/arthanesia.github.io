@@ -11,7 +11,7 @@ import android.database.sqlite.SQLiteOpenHelper
  * transaction data must never be seeded with fake demo rows.
  */
 internal class ArthanesiaDatabase(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "arthanesia_local.db", null, 1) {
+    SQLiteOpenHelper(context.applicationContext, "arthanesia_local.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -22,7 +22,10 @@ internal class ArthanesiaDatabase(context: Context) :
                 amount INTEGER NOT NULL CHECK(amount > 0),
                 income INTEGER NOT NULL CHECK(income IN (0,1)),
                 transaction_date TEXT NOT NULL,
-                updated_at INTEGER NOT NULL
+                updated_at INTEGER NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'IDR',
+                original_amount REAL NOT NULL DEFAULT 0,
+                fx_rate_to_idr REAL NOT NULL DEFAULT 1
             )""".trimIndent()
         )
         db.execSQL(
@@ -43,14 +46,19 @@ internal class ArthanesiaDatabase(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Use explicit, non-destructive migrations for future schema versions.
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'IDR'")
+            db.execSQL("ALTER TABLE transactions ADD COLUMN original_amount REAL NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE transactions ADD COLUMN fx_rate_to_idr REAL NOT NULL DEFAULT 1")
+            db.execSQL("UPDATE transactions SET original_amount = amount WHERE original_amount = 0")
+        }
     }
 
     fun transactions(): List<MoneyEntry> {
         val result = mutableListOf<MoneyEntry>()
         readableDatabase.query(
             "transactions",
-            arrayOf("id", "title", "category", "amount", "income", "transaction_date"),
+            arrayOf("id", "title", "category", "amount", "income", "transaction_date", "currency", "original_amount", "fx_rate_to_idr"),
             null, null, null, null, "transaction_date DESC, id DESC"
         ).use { cursor ->
             while (cursor.moveToNext()) {
@@ -60,7 +68,10 @@ internal class ArthanesiaDatabase(context: Context) :
                     category = cursor.getString(2),
                     amount = cursor.getLong(3),
                     income = cursor.getInt(4) == 1,
-                    date = cursor.getString(5)
+                    date = cursor.getString(5),
+                    currency = cursor.getString(6),
+                    originalAmount = cursor.getDouble(7),
+                    fxRateToIdr = cursor.getDouble(8)
                 )
             }
         }
@@ -76,6 +87,9 @@ internal class ArthanesiaDatabase(context: Context) :
             put("income", if (entry.income) 1 else 0)
             put("transaction_date", entry.date)
             put("updated_at", System.currentTimeMillis())
+            put("currency", entry.currency)
+            put("original_amount", entry.originalAmount)
+            put("fx_rate_to_idr", entry.fxRateToIdr)
         }
         writableDatabase.insertWithOnConflict(
             "transactions", null, values, SQLiteDatabase.CONFLICT_REPLACE
