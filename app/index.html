@@ -9,8 +9,7 @@
 @media(max-width:900px){.layout{grid-template-columns:1fr}.side{position:static;display:flex;overflow:auto;gap:4px}.navitem{white-space:nowrap;width:auto}.cards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.wrap{width:calc(100% - 22px)}.top{height:62px}.layout{padding-top:13px}.side{display:none}.tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:6px 5px calc(6px + env(safe-area-inset-bottom));z-index:9;justify-content:space-around}.tabbar .navitem{font-size:9px;padding:7px 5px;text-align:center}.content{padding-bottom:68px}.cards{grid-template-columns:1fr 1fr}.cards .card:last-child{grid-column:1/-1}.cardvalue{font-size:20px}.heading{align-items:flex-start;flex-direction:column}.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}.auth{min-height:calc(100vh - 62px);padding:16px}.authcard{padding:22px}.topright .small{display:none}}
 @media print{.top,.side,.tabbar,.no-print,#authView,.footer{display:none!important}.layout{display:block;padding:0}.wrap{width:100%}.section,.card{break-inside:avoid;box-shadow:none}.content{padding:0}.tablewrap{overflow:visible}table{min-width:0;font-size:9px}}
-</style>
-</head>
+ .market-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.market-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fcfcfe}.market-card .label{font-size:9px;color:var(--muted)}.market-card .value{font-size:16px;font-weight:850;margin:3px 0}.market-card .fresh{font-size:8px;color:var(--green);font-weight:800}.market-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.market-tools label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin-bottom:5px}.converter{display:grid;grid-template-columns:90px 1fr auto;gap:6px;align-items:center}.converter select,.converter input{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.converter strong{font-size:11px;white-space:nowrap}@media(max-width:600px){.market-grid{grid-template-columns:1fr 1fr}.market-tools{grid-template-columns:1fr}.converter{grid-template-columns:80px 1fr auto}}\n</style>\n</head>
 <body>
 <header class="top"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center"><a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="logo">A</span>Arthanesia <span class="muted" style="font-weight:500;font-size:12px">/ App</span></a><div class="topright"><span id="accountEmail" class="small muted"></span><button id="signOut" class="btn hidden">Keluar</button></div></div></header>
 <main id="authView" class="auth">
@@ -18,7 +17,7 @@
 <div class="logo" style="height:46px;width:46px;border-radius:14px">A</div>
 <div class="small" style="margin-top:17px;color:var(--purple);font-weight:850;letter-spacing:1.4px">RUANG KERJA KEUANGAN</div>
 <h1 id="authTitle">Masuk ke Arthanesia</h1>
-<p class="muted small">Gunakan akun pribadi untuk menyimpan dan menyinkronkan pembukuan di semua perangkat.</p>
+<p class="muted small">Kelola pembukuan usaha Anda.</p>
 <form id="authForm">
 <div id="signupFields" class="hidden">
 <div class="field"><label>Nama pemilik</label><input id="fullName" autocomplete="name"></div>
@@ -40,17 +39,22 @@
 <button class="navitem" data-page="transactions">⇅ Transaksi</button>
 <button class="navitem" data-page="assistant">✦ Artha AI</button>
 <button class="navitem" data-page="profile">⚙ Profil</button>
-<div style="border-top:1px solid var(--line);margin-top:10px;padding:12px 8px" class="small muted">Data akun Anda · cloud sync</div>
+
 </aside>
 <div class="content">
 <section id="page-overview" class="page">
 <div class="heading"><div><h1>Ringkasan keuangan</h1><p id="workspaceName">Ruang kerja Anda</p></div><button class="btn primary no-print" data-goto="transactions">+ Catat transaksi</button></div>
 <div class="cards"><div class="card"><div class="cardlabel">Pemasukan · IDR</div><div class="cardvalue positive" id="sumIncome">Rp0</div></div><div class="card"><div class="cardlabel">Pengeluaran · IDR</div><div class="cardvalue negative" id="sumExpense">Rp0</div></div><div class="card"><div class="cardlabel">Saldo bersih · IDR</div><div class="cardvalue" id="sumNet">Rp0</div></div></div>
 <section class="section"><div class="secthead"><h2>Arus kas terbaru</h2><span class="small muted" id="syncStamp">Menyinkronkan...</span></div><div id="overviewRows" class="tablewrap"></div></section>
-<section class="section"><div class="secthead"><h2>Referensi pasar</h2><span class="small muted">Provider harian/spot</span></div><div class="rates" id="marketText">Memuat data kurs dan emas...</div></section>
+<section class="section"><div class="secthead"><h2>Pasar</h2><span class="small muted" id="marketFreshness">Memuat...</span></div>
+<div class="market-grid" id="marketCards"></div>
+<div class="market-tools">
+<div><label>Konversi</label><div class="converter"><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select><input id="marketAmount" inputmode="decimal" value="1"><strong id="marketResult">Rp0</strong></div></div>
+<div><label>Nisab zakat · 250 g</label><div class="converter"><input id="zakatAmount" inputmode="decimal" placeholder="Nominal harta"><strong id="zakatResult">—</strong></div></div>
+</div></section>
 </section>
 <section id="page-transactions" class="page hidden">
-<div class="heading"><div><h1>Buku transaksi</h1><p>Setiap transaksi menyimpan mata uang asli dan snapshot konversi IDR.</p></div><div class="actions no-print"><button id="printReport" class="btn">Cetak / PDF</button><button id="exportCsv" class="btn">Ekspor CSV</button></div></div>
+<div class="heading"><div><h1>Buku transaksi</h1><p>Nilai kurs disimpan saat transaksi dibuat.</p></div><div class="actions no-print"><button id="printReport" class="btn">Cetak / PDF</button><button id="exportCsv" class="btn">Ekspor CSV</button></div></div>
 <section class="section no-print">
 <div class="secthead"><h2>Tambah transaksi</h2><span class="small muted">Manual · web</span></div>
 <form id="transactionForm" class="formgrid">
@@ -80,7 +84,7 @@
 </div>
 </div>
 <nav class="tabbar no-print"><button class="navitem active" data-page="overview">Ringkasan</button><button class="navitem" data-page="transactions">Transaksi</button><button class="navitem" data-page="assistant">AI</button><button class="navitem" data-page="profile">Profil</button></nav>
-<footer class="footer">Arthanesia · Data keuangan hanya dapat dibaca oleh akun yang memilikinya.</footer>
+<footer class="footer">Arthanesia</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -105,7 +109,8 @@ async function loadMarket(){
   refreshFxLabel();
  }catch(e){$("marketText").textContent=e.message||"Harga pasar sementara tidak tersedia."}
 }
-function rateToIdr(currency){if(currency==="IDR")return 1;const units=Number(market?.rates?.[currency]||0);return units>0?1/units:0}
+function rateToIdr(currency){if(currency==="IDR")return 1;const r=Number(market?.rates?.[currency]||0);return r>0?r:0}
+function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";const gold=Number(market?.gold?.spotIdrPerGram||0),base=Number(($("zakatAmount")?.value||"0").replace(",",".")),nisab=gold*250;if($("zakatResult"))$("zakatResult").textContent=base&&gold?(base>=nisab?"Wajib · "+money(base*.025):"Belum mencapai nisab"):money(nisab);}
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
 async function loadProfile(){
  const {data,error}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
@@ -168,6 +173,7 @@ $("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=nul
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.page)));
 document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.goto)));
 $("txCurrency").addEventListener("change",refreshFxLabel);
+$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("zakatAmount").addEventListener("input",refreshMarketTools);
 $("searchTx").addEventListener("input",render);
 $("transactionRows").addEventListener("click",async e=>{
  const b=e.target.closest("[data-delete]");if(!b)return;
@@ -227,7 +233,7 @@ $("askAi").addEventListener("click",async()=>{
 function addBubble(text,who){const div=document.createElement("div");div.className="bubble "+who;div.textContent=text;$("aiMessages").appendChild(div);div.scrollIntoView({block:"nearest"});}
 $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
-loadMarket();setInterval(loadMarket,15*60*1000);
+loadMarket();setInterval(loadMarket,30000);
 sb?.auth.getSession().then(({data})=>{if(data.session)enter(data.session.user);});
 sb?.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_IN"&&session&&!user)enter(session.user);});
 })();
