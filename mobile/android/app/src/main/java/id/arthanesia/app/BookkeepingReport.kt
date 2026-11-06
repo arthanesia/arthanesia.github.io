@@ -100,8 +100,10 @@ internal object BookkeepingReport {
                 val direction = if (entry.income) "Masuk" else "Keluar"
                 val directionColor = if (entry.income) green else red
                 canvas.drawText(direction, 405f, baseline, paint(7.2f, directionColor, true))
-                val amount = (if (entry.income) "+" else "−") + currency(entry.amount)
-                canvas.drawText(amount, tableRight - 8f, baseline, paint(7.5f, directionColor, true, Paint.Align.RIGHT))
+                val original = if (entry.currency == "IDR") currency(entry.amount)
+                    else "${entry.currency} ${entry.originalAmount.toLong()} ≈ ${currency(entry.amount)}"
+                val amount = (if (entry.income) "+" else "−") + original
+                canvas.drawText(amount.take(35), tableRight - 8f, baseline, paint(6.2f, directionColor, true, Paint.Align.RIGHT))
                 canvas.drawLine(MARGIN, top + ROW_HEIGHT, tableRight, top + ROW_HEIGHT, paint(.5f, Color.rgb(233, 235, 241), false))
             }
 
@@ -121,9 +123,9 @@ internal object BookkeepingReport {
     fun createCsv(entries: List<MoneyEntry>): ByteArray {
         fun cell(value: String) = "\"" + value.replace("\"", "\"\"") + "\""
         val lines = buildList {
-            add(listOf("Tanggal", "Deskripsi", "Kategori", "Jenis", "Mata Uang", "Nominal").joinToString(";") { cell(it) })
+            add(listOf("Tanggal", "Deskripsi", "Kategori", "Jenis", "Mata Uang Asli", "Nominal Asli", "Konversi IDR", "Kurs IDR per 1 Unit").joinToString(";") { cell(it) })
             entries.sortedByDescending { it.id }.forEach {
-                add(listOf(it.date, it.title, it.category, if (it.income) "Pemasukan" else "Pengeluaran", "IDR", it.amount.toString()).joinToString(";") { value -> cell(value) })
+                add(listOf(it.date, it.title, it.category, if (it.income) "Pemasukan" else "Pengeluaran", it.currency, it.originalAmount.toString(), it.amount.toString(), it.fxRateToIdr.toString()).joinToString(";") { value -> cell(value) })
             }
         }
         return ("\uFEFF" + lines.joinToString("\r\n")).toByteArray(Charsets.UTF_8)
