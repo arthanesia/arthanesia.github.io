@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -704,6 +707,16 @@ private fun AnalyticsScreen(entries: List<MoneyEntry>, income: Long, expense: Lo
         }
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
+                SectionTitle("Cashflow candle", "Perubahan saldo kas harian · 7 hari terakhir")
+                CashflowCandleChart(entries)
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    LegendDot("Saldo naik", Green, "")
+                    LegendDot("Saldo turun", Red, "")
+                }
+            }
+        }
+        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(16.dp)) {
                 SectionTitle("Ringkasan kategori", "Total pengeluaran per kategori")
                 val grouped = entries.filter { !it.income }.groupBy { it.category }.mapValues { it.value.sumOf { e -> e.amount } }
                 val max = (grouped.values.maxOrNull() ?: 1L).coerceAtLeast(1L)
@@ -718,6 +731,65 @@ private fun AnalyticsScreen(entries: List<MoneyEntry>, income: Long, expense: Lo
         InsightCard("Catatan analitik", "Grafik historis harian dan bulanan akan disempurnakan setelah penyimpanan data dan filter periode diimplementasikan.", Icons.Default.Info)
     }
 }
+@Composable
+private fun CashflowCandleChart(entries: List<MoneyEntry>) {
+    val today = java.time.LocalDate.now()
+    val start = today.minusDays(6)
+    val format = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))
+    fun dateOf(entry: MoneyEntry) = runCatching { java.time.LocalDate.parse(entry.date, format) }.getOrNull()
+    val baseline = entries.filter { (dateOf(it) ?: today).isBefore(start) }
+        .sumOf { if (it.income) it.amount else -it.amount }
+    val days = (0..6).map { start.plusDays(it.toLong()) }
+    var running = baseline
+    val candles = days.map { day ->
+        val open = running
+        var high = open
+        var low = open
+        entries.filter { dateOf(it) == day }.sortedBy { it.id }.forEach { entry ->
+            running += if (entry.income) entry.amount else -entry.amount
+            high = maxOf(high, running)
+            low = minOf(low, running)
+        }
+        Triple(open, high to low, running)
+    }
+    val minValue = minOf(0L, candles.minOfOrNull { it.second.second } ?: 0L)
+    val maxValue = maxOf(1L, candles.maxOfOrNull { it.second.first } ?: 1L)
+    Canvas(Modifier.fillMaxWidth().height(155.dp)) {
+        val top = 8f
+        val bottom = size.height - 8f
+        val plotHeight = (bottom - top).coerceAtLeast(1f)
+        val span = (maxValue - minValue).toDouble().coerceAtLeast(1.0)
+        fun y(value: Long): Float = bottom - (((value - minValue).toDouble() / span) * plotHeight).toFloat()
+        val column = size.width / 7f
+        val candleWidth = (column * .38f).coerceAtLeast(5f)
+        if (minValue <= 0 && maxValue >= 0) {
+            drawLine(Muted.copy(alpha = .35f), Offset(0f, y(0)), Offset(size.width, y(0)), strokeWidth = 1f)
+        }
+        candles.forEachIndexed { index, candle ->
+            val x = column * (index + .5f)
+            val open = candle.first
+            val high = candle.second.first
+            val low = candle.second.second
+            val close = candle.third
+            val tint = if (close >= open) Green else Red
+            drawLine(tint, Offset(x, y(high)), Offset(x, y(low)), strokeWidth = 2f)
+            val rectTop = minOf(y(open), y(close))
+            val rectBottom = maxOf(y(open), y(close))
+            val height = (rectBottom - rectTop).coerceAtLeast(3f)
+            drawRect(
+                color = tint,
+                topLeft = Offset(x - candleWidth / 2f, rectTop),
+                size = Size(candleWidth, height)
+            )
+        }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        days.forEachIndexed { index, day ->
+            Text(if (index == 6) "Hari ini" else day.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")), fontSize = 8.sp, color = Muted)
+        }
+    }
+}
+
 @Composable
 private fun LegendDot(label: String, color: Color, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
