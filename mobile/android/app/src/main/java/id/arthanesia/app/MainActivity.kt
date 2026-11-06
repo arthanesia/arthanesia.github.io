@@ -60,7 +60,7 @@ internal data class MoneyEntry(
     val income: Boolean,
     val date: String = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID")))
 )
-private data class SavingGoal(val name: String, val current: Long, val target: Long, val due: String)
+internal data class SavingGoal(val name: String, val current: Long, val target: Long, val due: String)
 private enum class Page(val label: String) {
     HOME("Beranda"), TRANSACTIONS("Transaksi"), ANALYTICS("Analitik"),
     GOALS("Target"), ZAKAT("Zakat"), TAX("Pajak"), ASSISTANT("Artha AI"), PROFILE("Profil")
@@ -80,34 +80,22 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ArthanesiaApp() {
+    val context = LocalContext.current
+    val appDatabase = remember { ArthanesiaDatabase(context) }
     var loggedIn by remember { mutableStateOf(false) }
-    var dark by remember { mutableStateOf(false) }
+    var dark by remember { mutableStateOf(appDatabase.setting("dark") == "true") }
     var page by remember { mutableStateOf(Page.HOME) }
-    var owner by remember { mutableStateOf("Pemilik Usaha") }
-    var business by remember { mutableStateOf("Bisnis Saya") }
-    var currency by remember { mutableStateOf("IDR") }
-    var entries by remember {
-        mutableStateOf(listOf(
-            MoneyEntry(1, "Penjualan harian", "Penjualan", 3250000, true, "05 Nov 2026"),
-            MoneyEntry(2, "Bahan baku kopi", "Operasional", 1250000, false, "04 Nov 2026"),
-            MoneyEntry(3, "Pesanan katering", "Penjualan", 4800000, true, "03 Nov 2026"),
-            MoneyEntry(4, "Promosi Instagram", "Marketing", 650000, false, "02 Nov 2026"),
-            MoneyEntry(5, "Listrik & air", "Operasional", 475000, false, "01 Nov 2026")
-        ))
-    }
-    var goals by remember {
-        mutableStateOf(listOf(
-            SavingGoal("Mesin espresso", 12500000, 20000000, "Desember 2026"),
-            SavingGoal("Dana darurat usaha", 2450000, 12000000, "Maret 2027")
-        ))
-    }
+    var owner by remember { mutableStateOf(appDatabase.setting("owner")) }
+    var business by remember { mutableStateOf(appDatabase.setting("business")) }
+    var currency by remember { mutableStateOf(appDatabase.setting("currency", "IDR")) }
+    var entries by remember { mutableStateOf(appDatabase.transactions()) }
+    var goals by remember { mutableStateOf(appDatabase.goals()) }
     var showTransaction by remember { mutableStateOf(false) }
     var showEntryChooser by remember { mutableStateOf(false) }
     var initialIncome by remember { mutableStateOf(true) }
     var showGoal by remember { mutableStateOf(false) }
     var voiceDraft by remember { mutableStateOf("") }
     var parsedAmount by remember { mutableStateOf("") }
-    val context = LocalContext.current
     var pendingPdf by remember { mutableStateOf<ByteArray?>(null) }
     var pendingCsv by remember { mutableStateOf<ByteArray?>(null) }
     val pdfSaveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
@@ -199,17 +187,22 @@ private fun ArthanesiaApp() {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             if (!loggedIn) {
                 LoginScreen(
-                    onDemo = { owner = "Aero Pratama"; business = "Kopi Senja"; loggedIn = true },
+                    initialOwner = owner,
+                    initialBusiness = business,
                     onContinue = { name, biz ->
-                        owner = name.ifBlank { "Pemilik Usaha" }
-                        business = biz.ifBlank { "Bisnis Saya" }
+                        owner = name.trim()
+                        business = biz.trim()
+                        appDatabase.saveWorkspace(owner, business)
                         loggedIn = true
                     }
                 )
             } else {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
-                    topBar = { AppTopBar(page, business, { dark = !dark }, dark) },
+                    topBar = { AppTopBar(page, business, {
+                        dark = !dark
+                        appDatabase.saveSetting("dark", dark.toString())
+                    }, dark) },
                     bottomBar = {
                         NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                             listOf(Page.HOME, Page.TRANSACTIONS, Page.ANALYTICS, Page.GOALS, Page.PROFILE).forEach { item ->
@@ -239,7 +232,10 @@ private fun ArthanesiaApp() {
                             Page.TRANSACTIONS -> TransactionsScreen(
                                 entries = entries,
                                 onAdd = { initialIncome = true; showEntryChooser = true; voiceDraft = ""; parsedAmount = "" },
-                                onDelete = { id -> entries = entries.filterNot { it.id == id } },
+                                onDelete = { id ->
+                                    appDatabase.deleteTransaction(id)
+                                    entries = appDatabase.transactions()
+                                },
                                 onPrint = {
                                     runCatching { BookkeepingReport.print(context, entries, business, owner) }
                                         .onFailure { Toast.makeText(context, "Tidak dapat membuka fitur cetak.", Toast.LENGTH_LONG).show() }
@@ -259,7 +255,8 @@ private fun ArthanesiaApp() {
                             Page.TAX -> TaxScreen(entries)
                             Page.ASSISTANT -> AssistantScreen(balance, incomeTotal, expenseTotal, entries, business)
                             Page.PROFILE -> ProfileScreen(owner, business, currency, dark,
-                                onCurrency = { currency = it }, onTheme = { dark = !dark },
+                                onCurrency = { currency = it; appDatabase.saveSetting("currency", it) },
+                                onTheme = { dark = !dark; appDatabase.saveSetting("dark", dark.toString()) },
                                 onLogout = { loggedIn = false; page = Page.HOME })
                         }
                     }
@@ -278,23 +275,34 @@ private fun ArthanesiaApp() {
     if (showTransaction) {
         TransactionDialog(initialIncome, voiceDraft, parsedAmount,
             onDismiss = { showTransaction = false; voiceDraft = ""; parsedAmount = "" }) {
-            entries = listOf(it) + entries
+            appDatabase.saveTransaction(it)
+            entries = appDatabase.transactions()
             showTransaction = false
             voiceDraft = ""
             parsedAmount = ""
         }
     }
-    if (showGoal) GoalDialog(onDismiss = { showGoal = false }) { goals = goals + it; showGoal = false }
+    if (showGoal) GoalDialog(onDismiss = { showGoal = false }) {
+        appDatabase.saveGoal(it)
+        goals = appDatabase.goals()
+        showGoal = false
+    }
 }
 
 @Composable
-private fun LoginScreen(onDemo: () -> Unit, onContinue: (String, String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var business by remember { mutableStateOf("") }
-    var register by remember { mutableStateOf(false) }
-    BoxWithConstraints(Modifier.fillMaxSize().background(
-        Brush.verticalGradient(listOf(Color(0xFFF0EFFF), Color(0xFFFAFBFF)))
-    )) {
+private fun LoginScreen(
+    initialOwner: String,
+    initialBusiness: String,
+    onContinue: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf(initialOwner) }
+    var business by remember { mutableStateOf(initialBusiness) }
+    val existingWorkspace = initialOwner.isNotBlank() && initialBusiness.isNotBlank()
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFF0EFFF), Color(0xFFFAFBFF)))
+        )
+    ) {
         val compact = maxWidth < 600.dp
         Column(
             Modifier.fillMaxSize().padding(horizontal = if (compact) 24.dp else 72.dp, vertical = 28.dp),
@@ -306,27 +314,48 @@ private fun LoginScreen(onDemo: () -> Unit, onContinue: (String, String) -> Unit
             Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
             Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
             Spacer(Modifier.height(12.dp))
-            Text("Smart Financial Planner untuk UMKM Indonesia", fontSize = 14.sp, color = Color(0xFF202440), fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(28.dp))
-            Card(Modifier.fillMaxWidth().widthIn(max = 440.dp), shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(8.dp)) {
+            Text(
+                if (existingWorkspace) "Lanjutkan ruang kerja Anda" else "Siapkan ruang kerja usaha",
+                fontSize = 17.sp, color = Color(0xFF202440), fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(24.dp))
+            Card(
+                Modifier.fillMaxWidth().widthIn(max = 440.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (register) "Buat profil Arthanesia" else "Selamat datang kembali", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202440))
-                    Text(if (register) "Mulai perjalanan finansial bisnismu." else "Masuk untuk melanjutkan pengelolaan usaha.", fontSize = 12.sp, color = Muted)
-                    if (register) {
-                        OutlinedTextField(name, { name = it }, label = { Text("Nama pemilik") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(business, { business = it }, label = { Text("Nama usaha") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    Text(
+                        if (existingWorkspace) "Profil perangkat" else "Buat profil usaha",
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202440)
+                    )
+                    Text(
+                        "Nama pemilik dan usaha akan disimpan secara permanen di perangkat ini.",
+                        fontSize = 12.sp, color = Muted
+                    )
+                    OutlinedTextField(
+                        name, { name = it }, label = { Text("Nama pemilik") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                    OutlinedTextField(
+                        business, { business = it }, label = { Text("Nama usaha") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                    Button(
+                        onClick = { onContinue(name, business) },
+                        enabled = name.isNotBlank() && business.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().height(49.dp),
+                        shape = RoundedCornerShape(13.dp)
+                    ) {
+                        Icon(Icons.Default.AccountBalanceWallet, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (existingWorkspace) "Buka ruang kerja" else "Mulai gunakan Arthanesia")
                     }
-                    Button(onClick = onDemo, modifier = Modifier.fillMaxWidth().height(49.dp), shape = RoundedCornerShape(13.dp)) {
-                        Icon(Icons.Default.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Lanjutkan dengan akun demo")
-                    }
-                    OutlinedButton(onClick = { register = !register }, modifier = Modifier.fillMaxWidth().height(46.dp), shape = RoundedCornerShape(13.dp)) {
-                        Text(if (register) "Kembali ke halaman masuk" else "Buat profil lokal")
-                    }
-                    if (register) TextButton(onClick = { onContinue(name, business) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Mulai aplikasi", fontWeight = FontWeight.Bold)
-                    }
-                    Text("Mode prototipe lokal · akun demo pada sesi perangkat", color = Muted, fontSize = 10.sp)
+                    Text(
+                        "Data transaksi tersimpan pada database lokal perangkat. Login akun cloud, sinkronisasi antarperangkat, dan akses admin server memerlukan backend yang sedang disiapkan.",
+                        color = Muted, fontSize = 10.sp
+                    )
                 }
             }
         }
