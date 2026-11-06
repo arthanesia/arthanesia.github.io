@@ -1,0 +1,14 @@
+{
+  "id": "/app/",
+  "name": "Arthanesia",
+  "short_name": "Arthanesia",
+  "description": "Pembukuan dan perencanaan keuangan usaha",
+  "start_url": "/app/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#5b55df",
+  "icons": [
+    {"src": "/assets/arthanesia-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
