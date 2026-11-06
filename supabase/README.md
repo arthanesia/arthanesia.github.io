@@ -1,45 +1,45 @@
-# Arthanesia backend
+# Arthanesia Supabase production backend
 
-This directory contains a **deployment blueprint**, not a connected production backend yet.
+Project ref: `ixihqkifpmxruvjyfnrk`  
+Name: `arthanesia-production`  
+Region: Singapore (`ap-southeast-1`).
 
-## Current state
+## Deployed services
 
-- No Supabase project is connected to the linked account, so SQL has not been applied.
-- `schema-blueprint.sql` describes user-owned profiles and transactions, time-limited support access, and audit logs.
-- `functions/artha-assistant/index.ts` is an authenticated Gemini Edge Function template; explicit `consent: true` is required and only financial aggregates are sent to Gemini.
-- `functions/admin-dashboard/index.ts` is an admin-only metrics/profile directory template. It checks server-managed `app_metadata.role=admin`, writes an audit event, and does not return transaction rows.
-- `functions/admin-support-transactions/index.ts` is an audited support endpoint: it checks a live, owner-approved request for that exact admin, writes the audit event first, then returns limited transaction rows.
-- `config.toml` keeps JWT verification enabled for the assistant function.
+- Tables: profiles, transactions, financial goals, AI conversations/messages, exchange rates, gold prices, admin audit logs, and support-access requests.
+- RLS is enabled. Supabase Security Advisor currently reports no security lints.
+- Private Storage bucket `receipts` is configured with owner-path policies.
+- Edge Functions deployed: `market-data`, `artha-assistant`, `admin-dashboard`, `admin-support-transactions`.
+- Edge Function source is mirrored in `supabase/functions/` and configuration in `config.toml`.
 
-## Production setup checklist
+## Data security model
 
-1. Connect or create the Supabase project that will own Arthanesia data.
-2. Review `schema-blueprint.sql` in a staging project first. Confirm every table has RLS enabled and review all policies with the Supabase security advisors.
-3. Configure Auth (email verification, password reset, session policies) and provision trusted admin roles only through server-side `app_metadata`. Never trust `user_metadata` for authorization.
-4. Configure Edge Function secrets: `GEMINI_API_KEY` and, when needed, `GEMINI_MODEL`. Supabase supplies the project URL and anon key to Edge Functions.
-5. Deploy `artha-assistant` with JWT verification enabled. The request must include explicit `consent: true`. The function queries only the caller's RLS-protected rows, sends aggregated category/amount data to Gemini, and never forwards transaction descriptions or receipt images.
-6. Deploy `admin-dashboard` with JWT verification enabled and `SUPABASE_SERVICE_ROLE_KEY` stored as an Edge Function secret only. It checks `app_metadata.role=admin`, writes an audit event, and returns limited profile fields plus aggregate counts only.
-7. Deploy `admin-support-transactions` with JWT verification enabled. It requires a live, owner-approved support request created for the current admin. It logs the access before reading limited transaction details; direct admin SELECT on transactions is intentionally not granted in the SQL blueprint.
-8. For support access, the admin starts a request, the owner approves or declines in-app, the approval lasts 30 minutes, and the owner can revoke it.
-9. Run RLS tests with at least two ordinary users and one admin. Verify user A cannot select, update, delete, export, or infer user B's transaction rows.
+- Profiles, transactions, goals, and AI message data are owner-scoped by `auth.uid()`.
+- Receipt files are stored in a private bucket under a path beginning with the user's UUID.
+- The admin web client uses a public publishable key only; database authorization remains in RLS and server Edge Functions.
+- Admin role is read from server-managed `auth.users.raw_app_meta_data` / JWT `app_metadata`, not user-editable metadata.
+- The dashboard function returns limited profiles and aggregate counts, not transaction details.
+- Support transaction inspection requires a live, owner-approved request tied to the specific admin, expires after 30 minutes, can be revoked, and writes an audit row before reading transaction records.
+- Secret/service-role keys are used only inside Edge Functions, never in the browser or APK.
 
-## Important key handling
+## Owner setup still required
 
-- Publishable/anon keys may be used by the app with RLS in place.
-- Secret/service-role keys and `GEMINI_API_KEY` must stay in the server's secret store.
-- Never store production credentials in this repository or inside the APK.
+1. Register the intended admin account, verify its email, then follow [ADMIN-BOOTSTRAP.md](./ADMIN-BOOTSTRAP.md) to assign `app_metadata.role=admin` using trusted SQL Editor access.
+2. In Supabase Auth URL Configuration, allow `https://arthanesia.github.io/app/` and confirm email delivery.
+3. Add `GEMINI_API_KEY` to Edge Function secrets (optional `GEMINI_MODEL`); until configured, cloud AI returns a setup message and Android local analysis remains usable.
+4. Test signup, email confirmation, password recovery, RLS isolation with two normal accounts, admin 403/200 role checks, approved support expiry/revocation, and receipt storage before announcing general availability.
 
-## Assistant API contract
+## Edge Functions
 
-POST to the deployed `/functions/v1/artha-assistant` endpoint with an authenticated user JWT and JSON:
+- `market-data`: reads public FX reference data from open.er-api.com and XAU spot from gold-api.com. FX source data has a daily update schedule; the endpoint caches for 15 minutes and reports provider timestamps.
+- `artha-assistant`: requires an authenticated user, explicit `consent: true`, and a server-side `GEMINI_API_KEY`. It aggregates the caller's own transactions through RLS and sends only totals/categories to Gemini.
+- `admin-dashboard`: manually validates the bearer JWT (gateway JWT verification is disabled for the function because the code performs its own Supabase Auth validation), checks `app_metadata.role=admin`, writes an audit event, and returns limited profile/aggregate data.
+- `admin-support-transactions`: similarly validates the admin identity, checks a live owner-approved request for the exact admin, audits first, then returns limited transaction fields.
 
-```json
-{
-  "question": "Apa kategori pengeluaran terbesar saya?",
-  "from": "2026-11-01",
-  "to": "2026-11-30",
-  "consent": true
-}
-```
+## Client configuration
 
-The response includes `answer`, `period`, and `transactionCount`. Without explicit consent or a valid session, the request is rejected.
+The public web and Android clients use:
+- Project URL: `https://ixihqkifpmxruvjyfnrk.supabase.co`
+- Publishable key: stored in `admin/config.js` and the Android API client. This key is intended for public clients; RLS and server-side authorization remain mandatory.
+
+Do not commit any Supabase secret/service-role key or Gemini API key.
