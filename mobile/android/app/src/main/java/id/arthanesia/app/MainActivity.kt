@@ -776,7 +776,7 @@ private fun ProfileScreen(owner: String, business: String, currency: String, dar
                 Column {
                     Text(owner, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Text(business, color = Color.White.copy(.7f), fontSize = 10.sp)
-                    Text("Business owner · Demo", color = Color.White.copy(.75f), fontSize = 9.sp)
+                    Text("Pemilik usaha", color = Color.White.copy(.75f), fontSize = 9.sp)
                 }
             }
         }
@@ -807,7 +807,7 @@ private fun ProfileScreen(owner: String, business: String, currency: String, dar
                 ProfileBadge("Pejuang Hemat", "Mengelola pengeluaran", Icons.Default.Savings)
             }
         }
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Keluar dari demo") }
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Tutup ruang kerja") }
     }
 }
 @Composable
