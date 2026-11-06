@@ -90,7 +90,7 @@ footer{text-align:center;font-size:10px;color:var(--muted);padding:0 16px 25px}
    const body=$("profiles");body.replaceChildren();
    for(const p of (data.profiles||[])){
      const tr=document.createElement("tr");
-     [p.display_name||"—",p.business_name||"—",p.base_currency||"IDR",p.created_at?new Date(p.created_at).toLocaleDateString("id-ID"):"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);});
+     [p.full_name||p.display_name||"—",p.business_name||"—",p.base_currency||"IDR",p.created_at?new Date(p.created_at).toLocaleDateString("id-ID"):"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);});
      body.appendChild(tr);
    }
    if(!body.children.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=4;td.textContent="Belum ada pengguna.";tr.appendChild(td);body.appendChild(tr);}
