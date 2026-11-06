@@ -1,10 +1,14 @@
-name: Deploy Arthanesia Information Website
+name: Deploy Arthanesia Website
 
 on:
   push:
     branches: [main]
     paths:
-      - "**"
+      - "index.html"
+      - "admin/**"
+      - "admin-preview.html"
+      - "assets/**"
+      - ".nojekyll"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -30,10 +34,19 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload information website
+      - name: Assemble public website
+        run: |
+          mkdir -p public
+          cp index.html public/index.html
+          cp -R admin public/admin
+          cp -R assets public/assets
+          cp admin-preview.html public/admin-preview.html
+          cp .nojekyll public/.nojekyll
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ./public
 
       - name: Deploy to GitHub Pages
         id: deployment
