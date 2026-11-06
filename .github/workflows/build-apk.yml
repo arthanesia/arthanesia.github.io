@@ -27,3 +27,10 @@ jobs:
           name: arthanesia-v0.7.0-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Publish APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Arthanesia.apk
+          TAG="v0.7.${{ github.run_number }}"
+          gh release create "$TAG" Arthanesia.apk --repo "$GITHUB_REPOSITORY" --title "Arthanesia $TAG" --notes "Android build $TAG"
