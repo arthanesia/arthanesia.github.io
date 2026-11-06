@@ -604,7 +604,13 @@ private fun TransactionRow(entry: MoneyEntry, onDelete: (() -> Unit)? = null) {
                 Text("${entry.category} · ${entry.date}", fontSize = 9.sp, color = Muted)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text((if (entry.income) "+" else "−") + rupiah(entry.amount), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (entry.income) Green else Red)
+                Text(
+                    (if (entry.income) "+" else "−") +
+                        if (entry.currency == "IDR") rupiah(entry.amount)
+                        else "${entry.currency} ${entry.originalAmount.toLong()} · ≈ ${rupiah(entry.amount)}",
+                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (entry.income) Green else Red,
+                    maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
                 if (onDelete != null) TextButton(onClick = onDelete, contentPadding = PaddingValues(0.dp)) { Text("Hapus", fontSize = 9.sp, color = Red) }
             }
         }
