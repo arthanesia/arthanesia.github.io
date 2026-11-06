@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -82,7 +84,13 @@ class MainActivity : ComponentActivity() {
 private fun ArthanesiaApp() {
     val context = LocalContext.current
     val appDatabase = remember { ArthanesiaDatabase(context) }
-    var loggedIn by remember { mutableStateOf(false) }
+    val sessionStore = remember { SecureSessionStore(context) }
+    var cloudSession by remember { mutableStateOf(sessionStore.load()) }
+    val loggedIn = cloudSession != null
+    val coroutineScope = rememberCoroutineScope()
+    var authBusy by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf("") }
+    var syncStatus by remember { mutableStateOf("Data tersimpan di perangkat") }
     var dark by remember { mutableStateOf(appDatabase.setting("dark") == "true") }
     var page by remember { mutableStateOf(Page.HOME) }
     var owner by remember { mutableStateOf(appDatabase.setting("owner")) }
@@ -189,11 +197,49 @@ private fun ArthanesiaApp() {
                 LoginScreen(
                     initialOwner = owner,
                     initialBusiness = business,
-                    onContinue = { name, biz ->
-                        owner = name.trim()
-                        business = biz.trim()
-                        appDatabase.saveWorkspace(owner, business)
-                        loggedIn = true
+                    busy = authBusy,
+                    error = authError,
+                    onSignIn = { email, password ->
+                        coroutineScope.launch {
+                            authBusy = true
+                            authError = ""
+                            try {
+                                val session = SupabaseApi.signIn(email, password)
+                                cloudSession = session
+                                sessionStore.save(session)
+                                owner = appDatabase.setting("owner", email.substringBefore("@"))
+                                business = appDatabase.setting("business", "Bisnis Saya")
+                                appDatabase.saveWorkspace(owner, business)
+                                syncStatus = "Akun terhubung · menyinkronkan data"
+                            } catch (e: Exception) {
+                                authError = e.message ?: "Login gagal. Periksa koneksi dan akun."
+                            } finally {
+                                authBusy = false
+                            }
+                        }
+                    },
+                    onSignUp = { name, biz, email, password ->
+                        coroutineScope.launch {
+                            authBusy = true
+                            authError = ""
+                            try {
+                                val session = SupabaseApi.signUp(name, biz, email, password)
+                                if (session == null) {
+                                    authError = "Akun berhasil didaftarkan. Verifikasi email terlebih dahulu, lalu masuk."
+                                } else {
+                                    owner = name.trim()
+                                    business = biz.trim()
+                                    appDatabase.saveWorkspace(owner, business)
+                                    cloudSession = session
+                                    sessionStore.save(session)
+                                    syncStatus = "Akun terhubung · menyinkronkan data"
+                                }
+                            } catch (e: Exception) {
+                                authError = e.message ?: "Pendaftaran gagal."
+                            } finally {
+                                authBusy = false
+                            }
+                        }
                     }
                 )
             } else {
@@ -226,6 +272,7 @@ private fun ArthanesiaApp() {
                     Box(Modifier.fillMaxSize().padding(padding)) {
                         when (page) {
                             Page.HOME -> HomeScreen(owner, business, balance, incomeTotal, expenseTotal, entries,
+                                syncStatus = syncStatus,
                                 onAdd = { initialIncome = it; showEntryChooser = true; voiceDraft = ""; parsedAmount = "" },
                                 onVoice = { micPermission.launch(Manifest.permission.RECORD_AUDIO) },
                                 onNavigate = { page = it })
@@ -235,6 +282,12 @@ private fun ArthanesiaApp() {
                                 onDelete = { id ->
                                     appDatabase.deleteTransaction(id)
                                     entries = appDatabase.transactions()
+                                    cloudSession?.let { active ->
+                                        coroutineScope.launch {
+                                            runCatching { SupabaseApi.deleteTransaction(active, id) }
+                                                .onFailure { syncStatus = "Terhapus lokal; penghapusan cloud tertunda" }
+                                        }
+                                    }
                                 },
                                 onPrint = {
                                     runCatching { BookkeepingReport.print(context, entries, business, owner) }
@@ -257,13 +310,38 @@ private fun ArthanesiaApp() {
                             Page.PROFILE -> ProfileScreen(owner, business, currency, dark,
                                 onCurrency = { currency = it; appDatabase.saveSetting("currency", it) },
                                 onTheme = { dark = !dark; appDatabase.saveSetting("dark", dark.toString()) },
-                                onLogout = { loggedIn = false; page = Page.HOME })
+                                onLogout = {
+                                 cloudSession?.let { active -> coroutineScope.launch { runCatching { SupabaseApi.signOut(active) } } }
+                                 sessionStore.clear()
+                                 cloudSession = null
+                                 page = Page.HOME
+                             })
                         }
                     }
                 }
             }
         }
     }
+
+    LaunchedEffect(cloudSession?.userId, entries) {
+        val current = cloudSession ?: return@LaunchedEffect
+        try {
+            val active = if (current.expiresAt <= System.currentTimeMillis() / 1000 + 90) {
+                SupabaseApi.refresh(current).also {
+                    sessionStore.save(it)
+                    cloudSession = it
+                }
+            } else current
+            SupabaseApi.saveProfile(active, owner, business, currency)
+            val merged = SupabaseApi.syncTransactions(active, entries)
+            merged.forEach { appDatabase.saveTransaction(it) }
+            entries = appDatabase.transactions()
+            syncStatus = "Tersinkron ke cloud · ${entries.size} transaksi"
+        } catch (e: Exception) {
+            syncStatus = "Offline · data tetap tersimpan di perangkat"
+        }
+    }
+
     if (showEntryChooser) {
         EntryMethodDialog(
             onDismiss = { showEntryChooser = false },
@@ -293,68 +371,70 @@ private fun ArthanesiaApp() {
 private fun LoginScreen(
     initialOwner: String,
     initialBusiness: String,
-    onContinue: (String, String) -> Unit
+    busy: Boolean,
+    error: String,
+    onSignIn: (String, String) -> Unit,
+    onSignUp: (String, String, String, String) -> Unit
 ) {
+    var mode by remember { mutableStateOf("signin") }
     var name by remember { mutableStateOf(initialOwner) }
     var business by remember { mutableStateOf(initialBusiness) }
-    val existingWorkspace = initialOwner.isNotBlank() && initialBusiness.isNotBlank()
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color(0xFFF0EFFF), Color(0xFFFAFBFF)))
-        )
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFF0EFFF), Color(0xFFFAFBFF))))
     ) {
         val compact = maxWidth < 600.dp
         Column(
-            Modifier.fillMaxSize().padding(horizontal = if (compact) 24.dp else 72.dp, vertical = 28.dp),
+            Modifier.fillMaxSize().padding(horizontal = if (compact) 22.dp else 72.dp, vertical = 24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            WalletLogo(if (compact) 82.dp else 100.dp)
-            Spacer(Modifier.height(16.dp))
+            WalletLogo(if (compact) 72.dp else 88.dp)
+            Spacer(Modifier.height(12.dp))
             Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
             Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
-            Spacer(Modifier.height(12.dp))
-            Text(
-                if (existingWorkspace) "Lanjutkan ruang kerja Anda" else "Siapkan ruang kerja usaha",
-                fontSize = 17.sp, color = Color(0xFF202440), fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
             Card(
                 Modifier.fillMaxWidth().widthIn(max = 440.dp),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(8.dp)
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
-                Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        if (existingWorkspace) "Profil perangkat" else "Buat profil usaha",
-                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202440)
-                    )
-                    Text(
-                        "Nama pemilik dan usaha akan disimpan secara permanen di perangkat ini.",
-                        fontSize = 12.sp, color = Muted
-                    )
-                    OutlinedTextField(
-                        name, { name = it }, label = { Text("Nama pemilik") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
-                    )
-                    OutlinedTextField(
-                        business, { business = it }, label = { Text("Nama usaha") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
-                    )
+                Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                    Text(if (mode == "signin") "Masuk ke akun" else "Buat akun Arthanesia", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202440))
+                    Text("Gunakan akun pribadi untuk menyimpan data keuangan dan menyinkronkannya antarperangkat.", fontSize = 11.sp, color = Muted)
+                    if (mode == "signup") {
+                        OutlinedTextField(name, { name = it }, label = { Text("Nama pemilik") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        OutlinedTextField(business, { business = it }, label = { Text("Nama usaha") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
+                    OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                    OutlinedTextField(password, { password = it }, label = { Text("Password (min. 8 karakter)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                    if (error.isNotBlank()) Text(error, color = Red, fontSize = 10.sp)
                     Button(
-                        onClick = { onContinue(name, business) },
-                        enabled = name.isNotBlank() && business.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth().height(49.dp),
-                        shape = RoundedCornerShape(13.dp)
+                        onClick = {
+                            if (mode == "signin") onSignIn(email, password)
+                            else onSignUp(name, business, email, password)
+                        },
+                        enabled = !busy && email.contains("@") && password.length >= 8 &&
+                            (mode == "signin" || (name.isNotBlank() && business.isNotBlank())),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.AccountBalanceWallet, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (existingWorkspace) "Buka ruang kerja" else "Mulai gunakan Arthanesia")
+                        if (busy) CircularProgressIndicator(Modifier.size(17.dp), color = Color.White, strokeWidth = 2.dp)
+                        else Text(if (mode == "signin") "Masuk" else "Daftar akun")
+                    }
+                    TextButton(
+                        onClick = { mode = if (mode == "signin") "signup" else "signin" },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy
+                    ) {
+                        Text(if (mode == "signin") "Belum punya akun? Daftar" else "Sudah punya akun? Masuk")
                     }
                     Text(
-                        "Data transaksi tersimpan pada database lokal perangkat. Login akun cloud, sinkronisasi antarperangkat, dan akses admin server memerlukan backend yang sedang disiapkan.",
-                        color = Muted, fontSize = 10.sp
+                        "Data transaksi disimpan lokal terlebih dahulu dan disinkronkan setelah akun berhasil masuk. Sesi disimpan terenkripsi menggunakan Android Keystore.",
+                        color = Muted, fontSize = 9.sp
                     )
                 }
             }
@@ -414,12 +494,17 @@ private fun MetricCard(title: String, value: String, icon: androidx.compose.ui.g
 
 @Composable
 private fun HomeScreen(owner: String, business: String, balance: Long, income: Long, expense: Long,
-    entries: List<MoneyEntry>, onAdd: (Boolean) -> Unit, onVoice: () -> Unit, onNavigate: (Page) -> Unit) {
+    entries: List<MoneyEntry>, syncStatus: String, onAdd: (Boolean) -> Unit, onVoice: () -> Unit, onNavigate: (Page) -> Unit) {
     ScreenColumn {
         Column {
             Text("HALO, $owner 👋", fontSize = 10.sp, color = Brand, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text("Ringkasan keuanganmu", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
             Text("Pantau kondisi $business hari ini.", color = Muted, fontSize = 11.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.CloudDone, null, tint = if (syncStatus.startsWith("Tersinkron")) Green else Gold, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(syncStatus, fontSize = 9.sp, color = Muted)
+        }
         }
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
