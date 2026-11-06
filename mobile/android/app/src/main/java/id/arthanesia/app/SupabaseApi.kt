@@ -176,7 +176,7 @@ internal object SupabaseApi {
     suspend fun fetchProfile(session: CloudSession): CloudProfile? = withContext(Dispatchers.IO) {
         val result = request(
             "GET",
-            "/rest/v1/profiles?select=full_name,business_name,base_currency&id=eq.${session.userId}&limit=1",
+            "/rest/v1/profiles?select=full_name,business_name,base_currency,default_currency&id=eq.${session.userId}&limit=1",
             bearer = session.accessToken
         )
         if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Profil cloud belum dapat dibaca."))
@@ -186,7 +186,7 @@ internal object SupabaseApi {
             CloudProfile(
                 fullName = row.optString("full_name"),
                 businessName = row.optString("business_name"),
-                baseCurrency = row.optString("base_currency", "IDR")
+                baseCurrency = row.optString("default_currency", row.optString("base_currency", "IDR"))
             )
         }
     }
@@ -198,7 +198,8 @@ internal object SupabaseApi {
                     .put("id", session.userId)
                     .put("full_name", name)
                     .put("business_name", business)
-                    .put("base_currency", currency)
+                    .put("base_currency", "IDR")
+                    .put("default_currency", currency)
             )
             val result = request(
                 "POST",
