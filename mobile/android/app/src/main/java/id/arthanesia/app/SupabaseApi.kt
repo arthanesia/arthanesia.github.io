@@ -252,6 +252,22 @@ internal object SupabaseApi {
         request("POST", "/auth/v1/logout", bearer = session.accessToken)
     }
 
+    suspend fun askAssistant(session: CloudSession, question: String, consent: Boolean): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("question", question)
+            .put("consent", consent)
+        val response = request(
+            "POST",
+            "/functions/v1/artha-assistant",
+            payload.toString(),
+            session.accessToken
+        )
+        if (response.code !in 200..299) {
+            throw IllegalStateException(errorMessage(response.body, "Artha AI cloud belum tersedia."))
+        }
+        JSONObject(response.body).optString("answer").ifBlank { "AI belum memberikan jawaban." }
+    }
+
     private fun errorMessage(raw: String, fallback: String): String = runCatching {
         val obj = JSONObject(raw)
         obj.optString("msg").ifBlank { obj.optString("message").ifBlank { obj.optString("error_description").ifBlank { fallback } } }
