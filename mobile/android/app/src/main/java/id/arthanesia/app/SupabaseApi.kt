@@ -20,6 +20,13 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+internal data class MarketData(
+    val ratesPerIdr: Map<String, Double>,
+    val goldIdrPerGram: Double,
+    val fxUpdatedAt: String,
+    val goldUpdatedAt: String
+)
+
 internal data class CloudSession(
     val userId: String,
     val email: String,
@@ -250,6 +257,22 @@ internal object SupabaseApi {
 
     suspend fun signOut(session: CloudSession): Unit = withContext(Dispatchers.IO) {
         request("POST", "/auth/v1/logout", bearer = session.accessToken)
+    }
+
+    suspend fun fetchMarketData(): MarketData = withContext(Dispatchers.IO) {
+        val response = request("GET", "/functions/v1/market-data")
+        if (response.code !in 200..299) throw IllegalStateException(errorMessage(response.body, "Harga pasar tidak tersedia."))
+        val obj = JSONObject(response.body)
+        val ratesJson = obj.getJSONObject("rates")
+        val rates = mutableMapOf<String, Double>()
+        ratesJson.keys().forEach { code -> rates[code] = ratesJson.optDouble(code, 0.0) }
+        val gold = obj.getJSONObject("gold")
+        MarketData(
+            ratesPerIdr = rates,
+            goldIdrPerGram = gold.optDouble("idrPerGram", 0.0),
+            fxUpdatedAt = obj.optString("rateUpdatedAt"),
+            goldUpdatedAt = gold.optString("updatedAt")
+        )
     }
 
     suspend fun askAssistant(session: CloudSession, question: String, consent: Boolean): String = withContext(Dispatchers.IO) {
