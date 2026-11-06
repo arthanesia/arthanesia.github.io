@@ -1,140 +1,95 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const cors = {
+  "Access-Control-Allow-Origin": "https://arthanesia.github.io",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
+  if (!url || !anon) return json({ error: "Backend belum dikonfigurasi." }, 503);
+  const authorization = req.headers.get("Authorization") ?? "";
+  if (!authorization.startsWith("Bearer ")) return json({ error: "Silakan masuk terlebih dahulu." }, 401);
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!supabaseUrl || !anonKey || !geminiKey) {
-    return json({ error: "Backend belum dikonfigurasi. Hubungi administrator." }, 503);
-  }
-
-  const authorization = req.headers.get("Authorization");
-  if (!authorization?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-
-  let body: { question?: string; from?: string; to?: string; consent?: boolean };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Request JSON tidak valid." }, 400);
-  }
-
-  if (body.consent !== true) return json({ error: "Aktifkan persetujuan pengiriman ringkasan transaksi ke layanan AI terlebih dahulu." }, 403);
-
+  let body: { question?: string; consent?: boolean; from?: string; to?: string };
+  try { body = await req.json(); } catch { return json({ error: "Format pertanyaan tidak valid." }, 400); }
+  if (body.consent !== true) return json({ error: "Aktifkan persetujuan berbagi ringkasan keuangan untuk Artha AI terlebih dahulu." }, 403);
   const question = String(body.question ?? "").trim().slice(0, 1000);
   if (!question) return json({ error: "Pertanyaan tidak boleh kosong." }, 400);
 
-  const today = new Date();
-  const firstDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
-  const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(body.to ?? "") ? body.to! : today.toISOString().slice(0, 10);
-  const dateFrom = /^\d{4}-\d{2}-\d{2}$/.test(body.from ?? "")
-    ? body.from!
-    : firstDay.toISOString().slice(0, 10);
-  if (dateFrom > dateTo) return json({ error: "Rentang tanggal tidak valid." }, 400);
-
-  // The user JWT is forwarded to Postgres, so database RLS scopes the query.
-  const supabase = createClient(supabaseUrl, anonKey, {
+  const client = createClient(url, anon, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: userResult, error: userError } = await supabase.auth.getUser();
-  if (userError || !userResult.user) return json({ error: "Sesi tidak valid. Silakan masuk ulang." }, 401);
+  const token = authorization.slice(7);
+  const { data: auth, error: authError } = await client.auth.getUser(token);
+  if (authError || !auth.user) return json({ error: "Sesi tidak valid." }, 401);
 
-  // Only aggregate fields are selected. Descriptions, merchant names, account numbers,
-  // receipt images and other raw identifiers are deliberately excluded from the AI prompt.
-  const { data: rows, error: transactionError } = await supabase
-    .from("transactions")
-    .select("transaction_type, category, base_amount, base_currency, transaction_date")
-    .gte("transaction_date", dateFrom)
-    .lte("transaction_date", dateTo)
-    .order("transaction_date", { ascending: false })
+  if (!geminiKey) return json({ error: "AI cloud belum diaktifkan karena GEMINI_API_KEY belum dipasang oleh administrator. Mode lokal tetap tersedia." }, 503);
+
+  const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(body.to ?? "") ? body.to! : new Date().toISOString().slice(0, 10);
+  const dateFrom = /^\d{4}-\d{2}-\d{2}$/.test(body.from ?? "") ? body.from! : dateTo.slice(0, 8) + "01";
+  if (dateFrom > dateTo) return json({ error: "Rentang tanggal tidak valid." }, 400);
+  const { data: rows, error } = await client.from("transactions")
+    .select("type,category,amount_base,base_currency,occurred_at")
+    .gte("occurred_at", dateFrom + "T00:00:00+07:00")
+    .lte("occurred_at", dateTo + "T23:59:59+07:00")
     .limit(1000);
+  if (error) return json({ error: "Data transaksi tidak dapat dibaca." }, 503);
 
-  if (transactionError) {
-    console.error("Transaction aggregate query failed", transactionError.message);
-    return json({ error: "Data pembukuan belum tersedia. Pastikan skema backend sudah diterapkan." }, 503);
-  }
-
-  const categories = new Map<string, number>();
-  let income = 0;
-  let expense = 0;
-  const currency = rows?.[0]?.base_currency ?? "IDR";
+  let income = 0, expense = 0;
+  const byCategory = new Map<string, number>();
   for (const row of rows ?? []) {
-    const value = Number(row.base_amount ?? 0);
-    if (!Number.isFinite(value) || value <= 0) continue;
-    const category = String(row.category ?? "Lainnya").slice(0, 48);
-    if (row.transaction_type === "income") income += value;
-    if (row.transaction_type === "expense") {
-      expense += value;
-      categories.set(category, (categories.get(category) ?? 0) + value);
+    const amount = Number(row.amount_base ?? 0);
+    if (!(amount > 0)) continue;
+    if (row.type === "income") income += amount;
+    if (row.type === "expense") {
+      expense += amount;
+      const name = String(row.category ?? "Lainnya").slice(0, 40);
+      byCategory.set(name, (byCategory.get(name) ?? 0) + amount);
     }
   }
-
   const aggregate = {
     period: { from: dateFrom, to: dateTo },
-    currency,
+    currency: rows?.[0]?.base_currency ?? "IDR",
     transactionCount: rows?.length ?? 0,
-    income,
-    expense,
-    netCashFlow: income - expense,
-    expensesByCategory: [...categories.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([category, amount]) => ({ category, amount })),
+    income, expense, netCashFlow: income - expense,
+    expensesByCategory: [...byCategory.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8)
+      .map(([category,amount])=>({category,amount})),
   };
-
   const prompt = [
-    "Kamu adalah Artha Assistant, asisten analisis keuangan untuk usaha kecil Indonesia.",
-    "Jawab dalam Bahasa Indonesia yang jernih, praktis, dan tidak menghakimi.",
-    "Gunakan hanya agregat transaksi berikut. Jangan mengarang data, rasio, tanggal, atau fakta yang tidak tersedia.",
-    "Pisahkan fakta dari rekomendasi. Jangan mengaku sebagai konsultan pajak/akuntan. Untuk pajak dan zakat, jelaskan bahwa hasil butuh verifikasi aturan dan kondisi pengguna.",
-    "Jangan mendorong keputusan investasi, pinjaman, atau transfer. Jangan meminta data pribadi/rahasia.",
-    "Batasi jawaban sekitar 250 kata. Bila data kurang, sebutkan keterbatasannya.",
-    "AGREGAT TRANSAKSI (sudah dibatasi oleh RLS pengguna):",
-    JSON.stringify(aggregate),
-    "PERTANYAAN PENGGUNA:",
-    question,
+    "Kamu adalah Artha AI, asisten pembukuan usaha Indonesia.",
+    "Jawab dalam Bahasa Indonesia yang profesional, jelas, singkat, tidak mengarang data. Bedakan fakta dan saran.",
+    "Data ini agregat transaksi milik pengguna yang telah login. Jangan meminta password, kode OTP, atau data rekening. Jangan memberi klaim pajak/zakat yang pasti; berikan batasan dan sarankan verifikasi profesional bila perlu.",
+    "Ringkasan keuangan:", JSON.stringify(aggregate),
+    "Pertanyaan:", question,
   ].join("\n\n");
-
+  const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash"}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 700 },
+        generationConfig: { temperature: 0.25, maxOutputTokens: 700 },
       }),
       signal: AbortSignal.timeout(25000),
     },
   );
-
   if (!response.ok) {
-    console.error("Gemini API failed", response.status);
-    return json({ error: "Asisten AI sedang tidak tersedia. Coba lagi nanti." }, 502);
+    console.error("Gemini provider failure", response.status);
+    return json({ error: "Artha AI cloud sedang tidak tersedia. Coba kembali nanti." }, 502);
   }
-
-  const generated = await response.json();
-  const answer = generated?.candidates?.[0]?.content?.parts
-    ?.map((part: { text?: string }) => part.text ?? "")
-    .join("\n")
-    .trim();
-
-  if (!answer) return json({ error: "AI belum menghasilkan jawaban. Coba ubah pertanyaan." }, 502);
+  const result = await response.json();
+  const answer = result?.candidates?.[0]?.content?.parts?.map((part: {text?:string})=>part.text ?? "").join("\n").trim();
+  if (!answer) return json({ error: "AI tidak menghasilkan jawaban." }, 502);
   return json({ answer, period: aggregate.period, transactionCount: aggregate.transactionCount });
 });
