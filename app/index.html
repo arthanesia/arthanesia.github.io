@@ -114,6 +114,8 @@ async function loadProfile(){
  $("profileName").value=profile.full_name||user.user_metadata?.full_name||"";
  $("profileBusiness").value=profile.business_name||user.user_metadata?.business_name||"";
  $("profileCurrency").value=profile.base_currency||"IDR";
+ $("txCurrency").value=profile.base_currency||"IDR";
+ refreshFxLabel();
  $("workspaceName").textContent=profile.business_name||profile.full_name||"Ruang kerja keuangan";
 }
 async function loadTransactions(){
@@ -208,7 +210,7 @@ $("saveProfile").addEventListener("click",async()=>{
  const payload={id:user.id,full_name:$("profileName").value.trim(),business_name:$("profileBusiness").value.trim(),base_currency:$("profileCurrency").value};
  const {error}=await sb.from("profiles").upsert(payload,{onConflict:"id"});
  if(error){$("profileMessage").textContent=error.message;return;}
- profile=payload;$("workspaceName").textContent=payload.business_name||payload.full_name;$("profileMessage").textContent="Profil berhasil disimpan.";
+ profile=payload;$("txCurrency").value=payload.base_currency;refreshFxLabel();$("workspaceName").textContent=payload.business_name||payload.full_name;$("profileMessage").textContent="Profil berhasil disimpan.";
 });
 $("askAi").addEventListener("click",async()=>{
  hide("aiError");
@@ -225,7 +227,7 @@ $("askAi").addEventListener("click",async()=>{
 function addBubble(text,who){const div=document.createElement("div");div.className="bubble "+who;div.textContent=text;$("aiMessages").appendChild(div);div.scrollIntoView({block:"nearest"});}
 $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
-loadMarket();
+loadMarket();setInterval(loadMarket,15*60*1000);
 sb?.auth.getSession().then(({data})=>{if(data.session)enter(data.session.user);});
 sb?.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_IN"&&session&&!user)enter(session.user);});
 })();
