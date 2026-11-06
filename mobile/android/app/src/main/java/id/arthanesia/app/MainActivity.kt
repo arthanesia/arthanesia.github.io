@@ -309,7 +309,7 @@ private fun ArthanesiaApp() {
                             )
                             Page.ANALYTICS -> AnalyticsScreen(entries, incomeTotal, expenseTotal)
                             Page.GOALS -> GoalsScreen(goals, onAdd = { showGoal = true })
-                            Page.ZAKAT -> ZakatScreen()
+                            Page.ZAKAT -> ZakatScreen(entries)
                             Page.TAX -> TaxScreen(entries)
                             Page.ASSISTANT -> AssistantScreen(balance, incomeTotal, expenseTotal, entries, business, cloudSession)
                             Page.PROFILE -> ProfileScreen(owner, business, currency, dark,
@@ -757,36 +757,30 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun ZakatScreen() {
+private fun ZakatScreen(entries: List<MoneyEntry>) {
     var market by remember { mutableStateOf<MarketData?>(null) }
     var loading by remember { mutableStateOf(true) }
     var marketError by remember { mutableStateOf("") }
-    var assets by remember { mutableStateOf("") }
-    var debts by remember { mutableStateOf("") }
-    var haul by remember { mutableStateOf(true) }
-
     LaunchedEffect(Unit) {
         while (true) {
             runCatching { SupabaseApi.fetchMarketData() }
-                .onSuccess {
-                    market = it
-                    marketError = ""
-                }
-                .onFailure {
-                    marketError = "Feed harga belum tersedia. Periksa koneksi."
-                }
+                .onSuccess { market = it; marketError = "" }
+                .onFailure { marketError = "Feed harga belum tersedia. Periksa koneksi." }
             loading = false
             delay(15 * 60 * 1000L)
         }
     }
-
+    val year = java.time.LocalDate.now().year
+    val annualIncome = entries.filter { it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
+    val annualExpense = entries.filter { !it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
+    val netIncome = (annualIncome - annualExpense).coerceAtLeast(0L)
     val goldPerGram = market?.goldIdrPerGram ?: 0.0
     val nisab = goldPerGram * 250.0
-    val netAssets = (parseLong(assets) - parseLong(debts)).coerceAtLeast(0L)
-    val wajib = nisab > 0 && netAssets >= nisab && haul
+    val reachesNisab = nisab > 0 && netIncome >= nisab
+    val zakat = if (reachesNisab) (netIncome * 0.025).toLong() else 0L
 
     ScreenColumn {
-        SectionTitle("Zakat Penghasilan", "Nisab referensi Arthanesia: 250 gram emas")
+        SectionTitle("Zakat Penghasilan", "Nisab konfigurasi Arthanesia: 250 gram emas")
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("HARGA EMAS SPOT · IDR", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -794,32 +788,48 @@ private fun ZakatScreen() {
                     if (loading && market == null) "Memuat harga..." else if (goldPerGram > 0) "${rupiah(goldPerGram.toLong())} / gram" else "Harga tidak tersedia",
                     color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
                 )
-                Text(
-                    if (nisab > 0) "Nilai nisab 250 g: ${rupiah(nisab.toLong())}" else "Nilai nisab belum dapat dihitung",
-                    color = Color.White.copy(.78f), fontSize = 10.sp
-                )
-                Text("Sumber: gold-api.com XAU spot · bukan harga retail Antam", color = Color.White.copy(.65f), fontSize = 9.sp)
+                Text(if (nisab > 0) "Nisab 250 g: ${rupiah(nisab.toLong())}" else "Nilai nisab belum dapat dihitung", color = Color.White.copy(.78f), fontSize = 10.sp)
+                Text("Sumber XAU spot · bukan harga retail Antam", color = Color.White.copy(.65f), fontSize = 9.sp)
             }
         }
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                OutlinedTextField(assets, { assets = it }, label = { Text("Penghasilan/aset yang menjadi dasar (IDR)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-                OutlinedTextField(debts, { debts = it }, label = { Text("Pengurang/kewajiban yang relevan (IDR)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(haul, { haul = it })
-                    Text("Sudah memenuhi haul 1 tahun", fontSize = 11.sp)
+                Text("Periode tahun $year", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Penghasilan bruto tercatat", color = Muted, fontSize = 10.sp)
+                    Text(rupiah(annualIncome), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                 }
-                Text("Dasar bersih: ${rupiah(netAssets)}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Pengeluaran tercatat", color = Muted, fontSize = 10.sp)
+                    Text(rupiah(annualExpense), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Divider()
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Dasar penghasilan bersih", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(rupiah(netIncome), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                LinearProgressIndicator(
+                    progress = { if (nisab > 0) (netIncome / nisab).toFloat().coerceIn(0f, 1f) else 0f },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = if (reachesNisab) Green else Brand
+                )
                 Text(
-                    if (wajib) "Indikator: mencapai nisab dan haul · estimasi 2,5% = ${rupiah((netAssets * .025).toLong())}"
-                    else "Indikator: belum memenuhi nisab dan/atau haul",
-                    color = if (wajib) Green else Muted, fontWeight = FontWeight.Bold, fontSize = 12.sp
+                    if (reachesNisab) "Mencapai nisab · estimasi zakat 2,5%: ${rupiah(zakat)}"
+                    else if (nisab > 0) "Belum mencapai nisab · kekurangan ${rupiah((nisab - netIncome).toLong())}"
+                    else "Indikator menunggu harga emas",
+                    color = if (reachesNisab) Green else Muted,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
                 )
             }
         }
         Text(
-            market?.let { "Referensi kurs diperbarui: ${it.fxUpdatedAt.ifBlank { "waktu tidak tersedia" }}. Emas: ${it.goldUpdatedAt.ifBlank { "waktu provider tidak tersedia" }}. Kurs acuan provider diperbarui harian, bukan tick-by-tick." }
+            market?.let { "Kurs referensi diperbarui: ${it.fxUpdatedAt.ifBlank { "tidak tersedia" }}. Feed emas: ${it.goldUpdatedAt.ifBlank { "waktu tidak tersedia" }}. Harga diperbarui otomatis setiap 15 menit di aplikasi; feed kurs dari provider bersifat harian." }
                 ?: marketError,
+            fontSize = 9.sp, color = Muted
+        )
+        Text(
+            "Perhitungan ini adalah estimasi dengan nisab 250 g sesuai konfigurasi pengguna. Dasar zakat dan biaya yang boleh dikurangkan dapat berbeda menurut panduan lembaga zakat; verifikasi sebelum pembayaran.",
             fontSize = 9.sp, color = Muted
         )
     }
