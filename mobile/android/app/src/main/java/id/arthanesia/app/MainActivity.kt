@@ -214,11 +214,16 @@ private fun ArthanesiaApp() {
                             try {
                                 val session = SupabaseApi.signIn(email, password)
                                 appDatabase.bindUnclaimedDataToFirstAccount(session.userId)
+                                val remoteProfile = SupabaseApi.fetchProfile(session)
                                 cloudSession = session
                                 sessionStore.save(session)
-                                owner = appDatabase.setting("owner").ifBlank { email.substringBefore("@") }
-                                business = appDatabase.setting("business").ifBlank { "Bisnis Saya" }
+                                owner = remoteProfile?.fullName?.ifBlank { appDatabase.setting("owner", email.substringBefore("@")) }
+                                    ?: appDatabase.setting("owner", email.substringBefore("@"))
+                                business = remoteProfile?.businessName?.ifBlank { appDatabase.setting("business", "Bisnis Saya") }
+                                    ?: appDatabase.setting("business", "Bisnis Saya")
+                                currency = remoteProfile?.baseCurrency?.takeIf { it.isNotBlank() } ?: appDatabase.setting("currency", "IDR")
                                 appDatabase.saveWorkspace(owner, business)
+                                appDatabase.saveSetting("currency", currency)
                                 entries = appDatabase.transactions(session.userId)
                                 goals = appDatabase.goals(session.userId)
                                 syncStatus = "Akun terhubung · menyinkronkan data"
