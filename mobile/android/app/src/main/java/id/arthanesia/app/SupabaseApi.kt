@@ -160,7 +160,7 @@ internal object SupabaseApi {
         withContext(Dispatchers.IO) {
             val metadata = JSONObject().put("full_name", name.trim()).put("business_name", business.trim())
             val body = JSONObject().put("email", email.trim()).put("password", password).put("data", metadata)
-            val result = request("POST", "/auth/v1/signup", body.toString())
+            val result = request("POST", "/auth/v1/signup?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F", body.toString())
             if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Pendaftaran gagal."))
             val response = JSONObject(result.body)
             if (response.has("access_token") && !response.isNull("access_token")) sessionFrom(response) else null
