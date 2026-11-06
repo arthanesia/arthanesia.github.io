@@ -17,7 +17,7 @@ Arthanesia is a financial-management product for Indonesian small businesses. Th
 
 The native Android application uses Kotlin + Jetpack Compose, SQLite for offline persistence, and Supabase Auth/REST for account sessions and transaction sync.
 
-Version: **0.6.1** (debug / early-access build).
+Version: **0.6.2** (debug / early-access build).
 
 Included:
 - Email/password signup and login.
@@ -43,7 +43,7 @@ gradle --no-daemon -p mobile/android :app:assembleDebug
 APK output:
 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`
 
-GitHub Actions also publishes `Arthanesia.apk` to the GitHub Release tagged `v0.6.1`.
+GitHub Actions also publishes `Arthanesia.apk` to the GitHub Release tagged `v0.6.2`.
 
 ## Web app
 
