@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
   const [profileCount, transactionCount, profiles] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }),
     admin.from("transactions").select("id", { count: "exact", head: true }),
-    admin.from("profiles").select("id,full_name,business_name,base_currency,created_at").order("created_at", { ascending: false }).limit(limit),
+    admin.from("profiles").select("id,full_name,business_name,base_currency,default_currency,created_at").order("created_at", { ascending: false }).limit(limit),
   ]);
   if (profileCount.error || transactionCount.error || profiles.error) {
     console.error("admin metrics query failed");
