@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "app/**"
+      - "download/**"
       - "admin/**"
       - "admin-preview.html"
       - "assets/**"
+      - "privacy/**"
+      - "terms/**"
       - ".nojekyll"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -34,11 +38,15 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Assemble public website
+      - name: Assemble complete public website
         run: |
           mkdir -p public
           cp index.html public/index.html
           cp -R admin public/admin
+          cp -R app public/app
+          cp -R download public/download
+          cp -R privacy public/privacy
+          cp -R terms public/terms
           cp -R assets public/assets
           cp admin-preview.html public/admin-preview.html
           cp .nojekyll public/.nojekyll
