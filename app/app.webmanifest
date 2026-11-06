@@ -4,7 +4,7 @@
   "short_name": "Arthanesia",
   "description": "Pembukuan dan perencanaan keuangan usaha",
   "start_url": "/app/",
-  "scope": "/",
+  "scope": "/app/",
   "display": "standalone",
   "background_color": "#f6f7fb",
   "theme_color": "#5b55df",
