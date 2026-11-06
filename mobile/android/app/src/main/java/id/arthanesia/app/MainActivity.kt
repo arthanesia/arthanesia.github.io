@@ -61,7 +61,10 @@ internal data class MoneyEntry(
     val category: String,
     val amount: Long,
     val income: Boolean,
-    val date: String = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID")))
+    val date: String = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))),
+    val currency: String = "IDR",
+    val originalAmount: Double = amount.toDouble(),
+    val fxRateToIdr: Double = 1.0
 )
 internal data class SavingGoal(val name: String, val current: Long, val target: Long, val due: String)
 private enum class Page(val label: String) {
