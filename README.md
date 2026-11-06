@@ -1,61 +1,98 @@
 # Arthanesia
 
-Arthanesia is the production home for the Indonesian small-business financial management product.
+Arthanesia is a financial-management product for Indonesian small businesses. The production website and Android app are published from this repository.
 
-- Public website: https://arthanesia.github.io/
-- Protected admin login: https://arthanesia.github.io/admin/
-- Repository: https://github.com/arthanesia/arthanesia.github.io
-- Prototype repository (kept separate): https://github.com/arthanesia/prototipe
+## Production links
 
-## Repository layout
-
-- `index.html` — public product website.
-- `admin/` — admin sign-in and dashboard client. It does not contain demo users or hard-coded credentials.
-- `mobile/android/` — native Android application (Kotlin + Jetpack Compose).
-- `supabase/` — database schema and Edge Function source templates.
-- `.github/workflows/` — Android build and GitHub Pages deployment.
+- Website: https://arthanesia.github.io/
+- Web app: https://arthanesia.github.io/app/
+- Android download: https://arthanesia.github.io/download/
+- Admin sign-in: https://arthanesia.github.io/admin/
+- Privacy policy: https://arthanesia.github.io/privacy/
+- Terms: https://arthanesia.github.io/terms/
+- Source repository: https://github.com/arthanesia/arthanesia.github.io
+- Separate prototype repository: https://github.com/arthanesia/prototipe
 
 ## Android app
 
-The Android application uses a local SQLite database for transaction, savings-goal, workspace-profile, currency-preference and theme persistence. The app starts with an empty ledger: no sample financial records are preloaded.
+The native Android application uses Kotlin + Jetpack Compose, SQLite for offline persistence, and Supabase Auth/REST for account sessions and transaction sync.
 
-### Build
+Version: **0.6.0** (debug / early-access build).
 
-Requires JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Gradle 9.3.1.
+Included:
+- Email/password signup and login.
+- Session encryption using Android Keystore (AES-GCM).
+- Local transaction persistence with per-user partitioning on shared devices.
+- Offline-first transaction sync to Supabase.
+- Transaction currency selection: IDR, USD, EUR, GBP, JPY, SGD, AUD, MYR.
+- Original amount, FX rate snapshot, and IDR base value stored separately.
+- Voice input using Android speech recognition.
+- Receipt image OCR using on-device ML Kit.
+- Professional A4 bookkeeping PDF, Android print dialog, and CSV export.
+- Cashflow summary and transaction-derived seven-day candlestick chart.
+- Annual tax estimate and configured 250g gold nisab zakat indicator.
+- Artha Assistant local analysis plus consent-gated cloud endpoint.
 
+Build requirements: JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Gradle 9.3.1.
+
+Build:
 ```bash
 gradle --no-daemon -p mobile/android :app:assembleDebug
 ```
 
-Output:
-
+APK output:
 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`
 
-GitHub Actions builds the APK when `mobile/android/**` changes.
+GitHub Actions also publishes `Arthanesia.apk` to the GitHub Release tagged `v0.6.0`.
 
-## Backend / production readiness
+## Web app
 
-A Supabase organization named `arthanesia` is connected, but the organization currently has **no Supabase project**. The SQL and Edge Functions here are source templates; they are not yet deployed and no database has been created.
+The installable PWA lives at `app/`. It uses Supabase email/password authentication and RLS-protected user-owned transactions. It supports:
+- User sign-up / sign-in.
+- Profile and business settings.
+- Transaction entry and history.
+- Currency conversion using the market-data function; historical rate and IDR amount are stored on the transaction.
+- Private receipt upload to the `receipts` storage bucket.
+- CSV export and browser print-to-PDF.
+- Consent-gated Artha AI invocation.
 
-Before cloud accounts, multi-device sync, server-side AI, or the production admin dashboard can work:
+The web app is a production MVP, not yet feature parity with every native screen. Browser receipt upload is available; on-device OCR and VoiceCash are currently in the Android app.
 
-1. Create the Supabase project in the Arthanesia organization and select the Singapore region.
-2. Apply and review `supabase/schema-blueprint.sql` in the project.
-3. Configure Supabase Auth email/password sign-in and invite/provision user accounts.
-4. Configure the public admin client values in `admin/config.js`: project URL and publishable key only.
-5. Deploy Edge Functions from `supabase/functions/` with JWT verification enabled.
-6. Keep the Supabase secret/service-role key and Gemini API key exclusively in Edge Function secrets.
-7. Assign `app_metadata.role = "admin"` only through trusted server-side administration. Never trust user-editable `user_metadata`.
-8. Run RLS, role-boundary, and access-audit tests before enabling real users.
+## Supabase production backend
 
-The admin web page is locked by default while the backend is unconfigured. It uses Supabase Auth and calls the protected `admin-dashboard` Edge Function after login. The function must verify the server-managed admin role before returning the limited profile directory and aggregate counts. It does not return transaction rows.
+Project: `arthanesia-production`  
+Project ref: `ixihqkifpmxruvjyfnrk`  
+Region: Singapore (`ap-southeast-1`)
 
-## Current limitations
+Database tables include:
+- `profiles`
+- `transactions`
+- `financial_goals`
+- `ai_conversations` / `ai_messages`
+- `exchange_rates` / `gold_prices`
+- `admin_audit_logs`
+- `support_access_requests`
 
-- Local Android ledger data is persistent on that device, but cloud sync and real user accounts are not active yet.
-- The website admin login cannot authenticate until a Supabase project is created, Auth is configured, the Edge Functions are deployed, and `admin/config.js` is filled with the public project URL and publishable key.
-- The in-app Artha Assistant currently analyses local transaction aggregates. The Gemini Edge Function is a server template, not yet deployed.
-- The native app still needs Supabase account/session integration and multi-user data sync before public production release.
-- Currency conversion, live rates and tax/zakat calculations must be tested and connected to reviewed data providers before these are treated as official values.
+RLS is enabled on all customer tables. The Security Advisor currently reports no security lints. Some performance advisories may remain as the project has little/no production traffic yet.
 
-Do not put password, service-role key, secret key, or Gemini API key in this repository or the Android app.
+Deployed Edge Functions:
+- `market-data`: gold spot + currency reference rates.
+- `admin-dashboard`: checks server-managed `app_metadata.role=admin`, writes audit events, and returns limited profile records + aggregate counts (not transaction rows).
+- `admin-support-transactions`: requires an owner-approved, live, time-limited support request bound to the requesting admin; writes audit before returning limited transaction details.
+- `artha-assistant`: requires an authenticated user and explicit `consent: true`; queries the caller's RLS-protected rows and sends aggregates to Gemini only.
+
+## Remaining owner setup for full production operation
+
+1. **First admin account:** create/register the intended admin user through the web app or Android app, then provision `app_metadata.role = 'admin'` for that exact user from the Supabase SQL editor or trusted server-side administration. Never set roles in user-editable metadata. See `supabase/ADMIN-BOOTSTRAP.md`.
+2. **Gemini:** add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to Supabase Edge Function secrets. The cloud AI function is deployed but intentionally returns a configuration message until the key exists; local analysis continues to work.
+3. **Auth URLs/email:** in Supabase Auth settings, allow `https://arthanesia.github.io/app/` as a redirect URL and verify that email confirmation mail delivery is configured.
+4. **Device QA:** test APK installation, account verification, network/offline sync, transaction deletion, print-to-PDF, OCR, and VoiceCash on actual Android devices before a public stable release.
+
+## Important data/provider limitations
+
+- Currency reference feed is sourced from open.er-api.com and updates on the provider's daily schedule; it is **not tick-by-tick live FX**. Transaction values store their original currency and conversion snapshot, so later rate updates do not rewrite history.
+- Gold uses an XAU spot feed, converted to IDR per gram, and refreshed by the app every 15 minutes. It is not an Antam retail quote.
+- Zakat and tax screens are estimates. Zakat uses the Arthanesia 250g nisab configuration and net recorded annual cashflow; the correct basis should be reviewed with the relevant zakat institution. The PPh estimate uses net income after entered qualifying deductions and default PTKP TK/0; household status and allowable deductions must be verified.
+- The release is a debug-signed APK for early access, not a Play Store production-signed binary. The current build has passed Gradle compilation but has not been tested across a device matrix.
+
+Never put Supabase secret/service-role keys or the Gemini API key in the website, Android source, or repository.
