@@ -42,7 +42,7 @@ footer{text-align:center;font-size:10px;color:var(--muted);padding:0 16px 25px}
 <div class="toolbar"><div><div class="overline">ADMINISTRATION</div><h1>Ringkasan platform</h1><p class="intro" id="adminIdentity">Akun admin terautentikasi</p></div><button id="logoutButton" class="secondary">Keluar</button></div>
 <div class="stats"><div class="stat"><span>Pengguna terdaftar</span><b id="userCount">—</b></div><div class="stat"><span>Transaksi tersimpan</span><b id="transactionCount">—</b></div><div class="stat"><span>Baris keuangan ditampilkan</span><b>0</b></div></div>
 <div class="toolbar"><div><b style="font-size:12px">Direktori pengguna</b><div class="intro" style="margin:4px 0 0">Informasi profil terbatas, tanpa isi transaksi keuangan.</div></div><span class="overline">DATA LIVE</span></div>
-<div class="tablebox"><table><thead><tr><th>PEMILIK AKUN</th><th>NAMA USAHA</th><th>MATA UANG</th><th>TERDAFTAR</th></tr></thead><tbody id="profiles"><tr><td colspan="4">Memuat data...</td></tr></tbody></table></div>
+<div class="tablebox"><table><thead><tr><th>PEMILIK AKUN</th><th>NAMA USAHA</th><th>MATA UANG DEFAULT</th><th>TERDAFTAR</th></tr></thead><tbody id="profiles"><tr><td colspan="4">Memuat data...</td></tr></tbody></table></div>
 <div id="dashboardNotice" class="notice"></div>
 <p class="small">Dashboard ini hanya menampilkan profil dasar dan metrik agregat. Rincian transaksi pengguna tidak tersedia dari dashboard umum. Akses dukungan ke data individu harus melalui proses persetujuan terpisah dan audit.</p>
 </section>
@@ -90,7 +90,7 @@ footer{text-align:center;font-size:10px;color:var(--muted);padding:0 16px 25px}
    const body=$("profiles");body.replaceChildren();
    for(const p of (data.profiles||[])){
      const tr=document.createElement("tr");
-     [p.full_name||p.display_name||"—",p.business_name||"—",p.base_currency||"IDR",p.created_at?new Date(p.created_at).toLocaleDateString("id-ID"):"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);});
+     [p.full_name||p.display_name||"—",p.business_name||"—",p.default_currency||p.base_currency||"IDR",p.created_at?new Date(p.created_at).toLocaleDateString("id-ID"):"—"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);});
      body.appendChild(tr);
    }
    if(!body.children.length){const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=4;td.textContent="Belum ada pengguna.";tr.appendChild(td);body.appendChild(tr);}
