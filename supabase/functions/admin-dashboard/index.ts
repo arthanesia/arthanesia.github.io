@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://arthanesia.github.io",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
@@ -18,8 +18,16 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "GET") return json({ error: "Method not allowed" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const publishableKeys = (() => {
+    try { return JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}"); } catch { return {}; }
+  })();
+  const secretKeys = (() => {
+    try { return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}"); } catch { return {}; }
+  })();
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? publishableKeys.default;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    ?? Deno.env.get("SUPABASE_SECRET_KEY")
+    ?? secretKeys.default;
   if (!url || !anonKey || !serviceKey) return json({ error: "Admin backend belum dikonfigurasi." }, 503);
 
   const authorization = req.headers.get("Authorization");
