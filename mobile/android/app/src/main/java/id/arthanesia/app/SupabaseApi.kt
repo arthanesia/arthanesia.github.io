@@ -198,11 +198,11 @@ internal object SupabaseApi {
                         .put("user_id", session.userId)
                         .put("client_ref", "${session.userId}-${entry.id}")
                         .put("type", if (entry.income) "income" else "expense")
-                        .put("amount", entry.amount)
-                        .put("currency", "IDR")
+                        .put("amount", entry.originalAmount)
+                        .put("currency", entry.currency)
                         .put("amount_base", entry.amount)
                         .put("base_currency", "IDR")
-                        .put("exchange_rate", 1)
+                        .put("exchange_rate", entry.fxRateToIdr)
                         .put("category", entry.category)
                         .put("description", entry.title)
                         .put("occurred_at", isoDate.atStartOfDay(ZoneId.of("Asia/Jakarta")).toInstant().toString())
@@ -241,9 +241,12 @@ internal object SupabaseApi {
                     id = id,
                     title = row.optString("description", "Transaksi"),
                     category = row.optString("category", "Lainnya"),
-                    amount = row.optDouble("amount", 0.0).toLong(),
+                    amount = row.optDouble("amount_base", row.optDouble("amount", 0.0)).toLong(),
                     income = row.optString("type") == "income",
-                    date = date
+                    date = date,
+                    currency = row.optString("currency", "IDR"),
+                    originalAmount = row.optDouble("amount", 0.0),
+                    fxRateToIdr = row.optDouble("exchange_rate", 1.0)
                 )
                 known += id
             }
