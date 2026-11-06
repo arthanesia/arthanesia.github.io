@@ -306,7 +306,7 @@ private fun ArthanesiaApp() {
                             Page.GOALS -> GoalsScreen(goals, onAdd = { showGoal = true })
                             Page.ZAKAT -> ZakatScreen()
                             Page.TAX -> TaxScreen(entries)
-                            Page.ASSISTANT -> AssistantScreen(balance, incomeTotal, expenseTotal, entries, business)
+                            Page.ASSISTANT -> AssistantScreen(balance, incomeTotal, expenseTotal, entries, business, cloudSession)
                             Page.PROFILE -> ProfileScreen(owner, business, currency, dark,
                                 onCurrency = { currency = it; appDatabase.saveSetting("currency", it) },
                                 onTheme = { dark = !dark; appDatabase.saveSetting("dark", dark.toString()) },
@@ -785,9 +785,12 @@ private fun ZakatScreen() {
 private fun parseLong(s:String)=s.replace(Regex("[^0-9]"),"").toLongOrNull()?:0L
 
 @Composable
-private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries: List<MoneyEntry>, business: String) {
+private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries: List<MoneyEntry>, business: String, cloudSession: CloudSession?) {
     var question by remember { mutableStateOf("") }
     var conversation by remember { mutableStateOf(listOf("Halo! Saya Artha Assistant. Saya dapat menganalisis catatan keuangan $business yang tersedia di perangkat ini.")) }
+    var cloudConsent by remember { mutableStateOf(false) }
+    var cloudBusy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     ScreenColumn {
         SectionTitle("Artha Assistant", "Analisis pembukuan lokal · offline")
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -806,9 +809,39 @@ private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries:
             AssistChip(onClick = { question = it }, label = { Text(it, fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(15.dp)) })
         }
         OutlinedTextField(question, { question = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Tulis pertanyaan...") })
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = cloudConsent,
+                onCheckedChange = { cloudConsent = it },
+                enabled = cloudSession != null && !cloudBusy
+            )
+            Column {
+                Text("Izinkan analisis AI cloud", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (cloudSession == null) "Masuk ke akun untuk memakai AI cloud."
+                    else "Ringkasan transaksi agregat akan dikirim ke Gemini; deskripsi dan foto struk tidak dikirim.",
+                    fontSize = 9.sp, color = Muted
+                )
+            }
+        }
         Button(onClick = {
-            if (question.isNotBlank()) {
-                val q = question.trim()
+            val q = question.trim()
+            if (q.isNotBlank()) {
+                question = ""
+                if (cloudConsent && cloudSession != null) {
+                    conversation = conversation + q + "Menganalisis ringkasan keuangan..."
+                    scope.launch {
+                        try {
+                            val answer = SupabaseApi.askAssistant(cloudSession, q, true)
+                            conversation = conversation.dropLast(1) + answer
+                        } catch (e: Exception) {
+                            conversation = conversation.dropLast(1) + (e.message ?: "AI cloud belum tersedia. Gunakan analisis lokal.")
+                        } finally {
+                            cloudBusy = false
+                        }
+                    }
+                    cloudBusy = true
+                } else {
                 val expenseByCategory = entries.filterNot { it.income }
                     .groupBy { it.category }
                     .mapValues { (_, rows) -> rows.sumOf { it.amount } }
@@ -842,10 +875,17 @@ private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries:
                         "Saya bisa menganalisis arus kas, kategori pengeluaran, efisiensi, pemasukan, margin sederhana, laporan, dan dasar perhitungan pajak. Jawaban saat ini dihitung dari catatan di perangkat."
                 }
                 conversation = conversation + q + answer
-                question = ""
+                }
             }
-        }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Send, null); Spacer(Modifier.width(7.dp)); Text("Kirim pertanyaan") }
-        Text("Mode saat ini: analisis lokal tanpa mengirim transaksi ke pihak ketiga. Integrasi Gemini memerlukan project backend aktif dan persetujuan pengguna sebelum agregat keuangan dikirim.", color = Muted, fontSize = 9.sp)
+        }, enabled = !cloudBusy, modifier = Modifier.fillMaxWidth()) {
+            if (cloudBusy) CircularProgressIndicator(Modifier.size(17.dp), color = Color.White, strokeWidth = 2.dp)
+            else { Icon(Icons.Default.Send, null); Spacer(Modifier.width(7.dp)); Text(if (cloudConsent) "Tanya Artha AI cloud" else "Analisis lokal") }
+        }
+        Text(
+            if (cloudConsent) "Anda memberi persetujuan untuk mengirim agregat transaksi ke fungsi AI. Jika kunci Gemini belum dipasang, jawaban cloud akan memberi pesan status."
+            else "Mode lokal tidak mengirim data ke server.",
+            color = Muted, fontSize = 9.sp
+        )
     }
 }
 
