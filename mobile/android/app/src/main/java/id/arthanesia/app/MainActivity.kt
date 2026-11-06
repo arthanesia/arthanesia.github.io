@@ -104,8 +104,8 @@ private fun ArthanesiaApp() {
     var owner by remember { mutableStateOf(appDatabase.setting("owner")) }
     var business by remember { mutableStateOf(appDatabase.setting("business")) }
     var currency by remember { mutableStateOf(appDatabase.setting("currency", "IDR")) }
-    var entries by remember { mutableStateOf(appDatabase.transactions()) }
-    var goals by remember { mutableStateOf(appDatabase.goals()) }
+    var entries by remember { mutableStateOf(cloudSession?.let { appDatabase.transactions(it.userId) } ?: emptyList()) }
+    var goals by remember { mutableStateOf(cloudSession?.let { appDatabase.goals(it.userId) } ?: emptyList()) }
     var showTransaction by remember { mutableStateOf(false) }
     var showEntryChooser by remember { mutableStateOf(false) }
     var initialIncome by remember { mutableStateOf(true) }
@@ -213,11 +213,14 @@ private fun ArthanesiaApp() {
                             authError = ""
                             try {
                                 val session = SupabaseApi.signIn(email, password)
+                                appDatabase.bindUnclaimedDataToFirstAccount(session.userId)
                                 cloudSession = session
                                 sessionStore.save(session)
-                                owner = appDatabase.setting("owner", email.substringBefore("@"))
-                                business = appDatabase.setting("business", "Bisnis Saya")
+                                owner = appDatabase.setting("owner").ifBlank { email.substringBefore("@") }
+                                business = appDatabase.setting("business").ifBlank { "Bisnis Saya" }
                                 appDatabase.saveWorkspace(owner, business)
+                                entries = appDatabase.transactions(session.userId)
+                                goals = appDatabase.goals(session.userId)
                                 syncStatus = "Akun terhubung · menyinkronkan data"
                             } catch (e: Exception) {
                                 authError = e.message ?: "Login gagal. Periksa koneksi dan akun."
@@ -235,9 +238,12 @@ private fun ArthanesiaApp() {
                                 if (session == null) {
                                     authError = "Akun berhasil didaftarkan. Verifikasi email terlebih dahulu, lalu masuk."
                                 } else {
+                                    appDatabase.bindUnclaimedDataToFirstAccount(session.userId)
                                     owner = name.trim()
                                     business = biz.trim()
                                     appDatabase.saveWorkspace(owner, business)
+                                    entries = appDatabase.transactions(session.userId)
+                                    goals = appDatabase.goals(session.userId)
                                     cloudSession = session
                                     sessionStore.save(session)
                                     syncStatus = "Akun terhubung · menyinkronkan data"
@@ -288,8 +294,9 @@ private fun ArthanesiaApp() {
                                 entries = entries,
                                 onAdd = { initialIncome = true; showEntryChooser = true; voiceDraft = ""; parsedAmount = "" },
                                 onDelete = { id ->
-                                    appDatabase.deleteTransaction(id)
-                                    entries = appDatabase.transactions()
+                                    val activeUser = cloudSession?.userId
+                                    appDatabase.deleteTransaction(id, activeUser)
+                                    entries = appDatabase.transactions(activeUser)
                                     cloudSession?.let { active ->
                                         coroutineScope.launch {
                                             runCatching { SupabaseApi.deleteTransaction(active, id) }
@@ -322,6 +329,8 @@ private fun ArthanesiaApp() {
                                  cloudSession?.let { active -> coroutineScope.launch { runCatching { SupabaseApi.signOut(active) } } }
                                  sessionStore.clear()
                                  cloudSession = null
+                                 entries = emptyList()
+                                 goals = emptyList()
                                  page = Page.HOME
                              })
                         }
@@ -349,8 +358,8 @@ private fun ArthanesiaApp() {
             } else current
             SupabaseApi.saveProfile(active, owner, business, currency)
             val merged = SupabaseApi.syncTransactions(active, entries)
-            merged.forEach { appDatabase.saveTransaction(it) }
-            entries = appDatabase.transactions()
+            merged.forEach { appDatabase.saveTransaction(it, active.userId) }
+            entries = appDatabase.transactions(active.userId)
             syncStatus = "Tersinkron ke cloud · ${entries.size} transaksi"
         } catch (e: Exception) {
             syncStatus = "Offline · data tetap tersimpan di perangkat"
@@ -368,16 +377,18 @@ private fun ArthanesiaApp() {
     if (showTransaction) {
         TransactionDialog(initialIncome, voiceDraft, parsedAmount, currency, fxMarketData,
             onDismiss = { showTransaction = false; voiceDraft = ""; parsedAmount = "" }) {
-            appDatabase.saveTransaction(it)
-            entries = appDatabase.transactions()
+            val ownerId = cloudSession?.userId ?: return@TransactionDialog
+            appDatabase.saveTransaction(it, ownerId)
+            entries = appDatabase.transactions(ownerId)
             showTransaction = false
             voiceDraft = ""
             parsedAmount = ""
         }
     }
     if (showGoal) GoalDialog(onDismiss = { showGoal = false }) {
-        appDatabase.saveGoal(it)
-        goals = appDatabase.goals()
+        val ownerId = cloudSession?.userId ?: return@GoalDialog
+        appDatabase.saveGoal(it, ownerId)
+        goals = appDatabase.goals(ownerId)
         showGoal = false
     }
 }
