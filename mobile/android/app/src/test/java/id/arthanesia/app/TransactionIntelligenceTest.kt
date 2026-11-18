@@ -103,4 +103,67 @@ class TransactionIntelligenceTest {
         assertEquals(16_650L, result.amount)
     }
 
+    @Test
+    fun goldZakatRequiresNisabAndHaul() {
+        val result = ZakatCalculator.evaluateGold(
+            ownedGrams = 100.0,
+            buybackPricePerGram = 2_300_000.0,
+            haulComplete = false
+        )
+
+        assertTrue(result.meetsNisab)
+        assertFalse(result.eligible)
+        assertEquals(0L, result.zakatAmount)
+    }
+
+    @Test
+    fun goldZakatUsesEightyFiveGramNisabAndTwoPointFivePercent() {
+        val result = ZakatCalculator.evaluateGold(
+            ownedGrams = 100.0,
+            buybackPricePerGram = 2_300_000.0,
+            haulComplete = true
+        )
+
+        assertEquals(195_500_000L, result.ownedValue)
+        assertEquals(195_500_000L, result.zakatAmount * 40L)
+        assertTrue(result.eligible)
+        assertEquals(4_887_500L, result.zakatAmount)
+    }
+
+    @Test
+    fun goldBelowNisabHasNoZakat() {
+        val result = ZakatCalculator.evaluateGold(
+            ownedGrams = 84.99,
+            buybackPricePerGram = 2_300_000.0,
+            haulComplete = true
+        )
+
+        assertFalse(result.meetsNisab)
+        assertFalse(result.eligible)
+        assertEquals(0L, result.zakatAmount)
+    }
+
+    @Test
+    fun missingBuybackPriceDoesNotMarkGoldAsEligible() {
+        val result = ZakatCalculator.evaluateGold(
+            ownedGrams = 100.0,
+            buybackPricePerGram = 0.0,
+            haulComplete = true
+        )
+
+        assertFalse(result.meetsNisab)
+        assertEquals(0L, result.nisabValue)
+        assertEquals(0L, result.zakatAmount)
+    }
+
+    @Test
+    fun incomeZakatUses2026BaznasThreshold() {
+        val below = ZakatCalculator.evaluateIncome(91_681_727L)
+        val above = ZakatCalculator.evaluateIncome(100_000_000L)
+
+        assertFalse(below.first)
+        assertTrue(above.first)
+        assertEquals(2_500_000L, above.second)
+    }
+    
 }
