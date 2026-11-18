@@ -103,7 +103,7 @@ Deno.serve(async (req: Request) => {
       antamPageDate = antamRetail.priceDate;
       return true;
     }),
-    fetchHtml("https://www.logammulia.com/id/sell/gold?npwp=off&weight=1").then(html => {
+    fetchHtml("https://www.logammulia.com/id/sell/gold?npwp=off").then(html => {
       antamBuyback = parseBuyback(html);
       if (!antamBuyback) throw new Error("Buyback price not found");
       return true;
