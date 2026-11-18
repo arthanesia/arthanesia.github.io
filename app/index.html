@@ -210,7 +210,7 @@ function renderZakat(){
   :!haul?"Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
   :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(gold.zakatAmount)+".";
  const finalStatus=buyback&&stale?"PERINGATAN: harga buyback terakhir sudah lebih dari 36 jam. "+status:status;
- const el=$("goldZakatStatus");el.textContent=finalStatus;el.style.background=gold.eligible?"#e8f7f0":"var(--bg)";el.style.color=gold.eligible?"var(--green)":"var(--ink)";
+ const el=$("goldZakatStatus");el.textContent=finalStatus;el.style.background=gold.eligible&&!stale?"#e8f7f0":stale?"#fff5df":"var(--bg)";el.style.color=gold.eligible&&!stale?"var(--green)":"var(--ink)";
  const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
  const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
  const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
