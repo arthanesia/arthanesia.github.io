@@ -53,9 +53,16 @@ internal object TransactionIntelligence {
                 !ignoredReceiptLine.containsMatchIn(line)
         }
         val fullText = lines.joinToString(" ")
-        val categorizedLine = detailLines.firstOrNull { categoryFor(it, false) != "Lainnya" }
-        val itemLine = categorizedLine ?: detailLines.drop(1).firstOrNull() ?: detailLines.firstOrNull()
-        val title = itemLine?.let(::cleanReceiptLine).orEmpty().ifBlank { "Pembelian dari struk" }
+        val itemLines = detailLines
+            .filter { numericAmount.containsMatchIn(it) }
+            .map(::cleanReceiptLine)
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(5)
+        val fallbackItems = if (itemLines.isEmpty()) {
+            detailLines.map(::cleanReceiptLine).filter { it.isNotBlank() }.take(3)
+        } else itemLines
+        val title = fallbackItems.joinToString(", ").ifBlank { "Pembelian dari struk" }
         return ParsedTransaction(
             income = false,
             amount = amount,
