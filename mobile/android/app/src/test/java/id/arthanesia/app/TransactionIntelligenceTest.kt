@@ -49,6 +49,7 @@ class TransactionIntelligenceTest {
         assertEquals(33_000L, result.amount)
         assertEquals("Bahan Baku", result.category)
         assertTrue(result.title.contains("Tepung Terigu"))
+        assertTrue(result.title.contains("Gula Pasir"))
     }
 
     @Test
