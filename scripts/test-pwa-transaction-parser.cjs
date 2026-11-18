@@ -24,10 +24,10 @@ for (const [index, match] of inlineScripts.entries()) {
 }
 
 const appScript = inlineScripts.map(match => match[1]).join("\n");
-const authRuleMatch = appScript.match(/function shouldEnterAppFromAuthEvent\\(event,session,isRecovering\\)\\{[\\s\\S]*?\\}/);
-assert.ok(authRuleMatch, "auth recovery state rule must be present");
+const authRuleSource = appScript.split("\n").find(line => line.trim().startsWith("function shouldEnterAppFromAuthEvent("));
+assert.ok(authRuleSource, "auth recovery state rule must be present");
 const authSandbox = {};
-vm.runInNewContext(authRuleMatch[0] + "\nthis.authRule = shouldEnterAppFromAuthEvent;", authSandbox);
+vm.runInNewContext(authRuleSource + "\nthis.authRule = shouldEnterAppFromAuthEvent;", authSandbox);
 assert.equal(authSandbox.authRule("INITIAL_SESSION", { user: {} }, false), true, "normal saved sessions should enter the app");
 assert.equal(authSandbox.authRule("SIGNED_IN", { user: {} }, false), true, "normal sign-ins should enter the app");
 assert.equal(authSandbox.authRule("INITIAL_SESSION", { user: {} }, true), false, "recovery sessions must not be redirected into the app");
