@@ -203,6 +203,12 @@ function renderZakat(){
  $("goldNisabValue").textContent=buyback?money(buyback*85):"—";
  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
  $("goldZakatStatus").textContent=buyback?"Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.":"Harga buyback ANTAM belum tersedia.";
+ const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
+ const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
+ const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
+ const income=calculateIncomeZakat(monthIncome,yearIncome);
+ $("incomeMonthValue").textContent=money(monthIncome);$("incomeYearValue").textContent=money(yearIncome);$("incomeZakatValue").textContent=money(income.zakatAmount);
+ $("incomeZakatStatus").textContent=income.basis==="monthly"?"Nisab bulanan terpenuhi":income.basis==="annual"?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
 }
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
 function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
