@@ -12,7 +12,7 @@ for (const [index, match] of inlineScripts.entries()) {
 
 const appScript = inlineScripts.map(match => match[1]).join("\n");
 const parserStart = appScript.indexOf("function categoryFor");
-const parserEnd = appScript.indexOf("async function getOcrWorker", parserStart);
+const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
 
 const parserSource = appScript.slice(parserStart, parserEnd) +
