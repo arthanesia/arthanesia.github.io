@@ -218,17 +218,23 @@ function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),
 async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
 function parseReceiptText(rawText){
  const text=String(rawText||""),lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
+ const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
  const amountFrom=line=>{const values=[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[^0-9]/g,""))).filter(n=>n>0&&Number.isFinite(n));return values.length?values[values.length-1]:null};
  let best=null,bestPriority=0,bestIndex=-1;
  lines.forEach((line,index)=>{
   if(ignore.test(line))return;
   const priority=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i.test(line)?3:/\btotal\b|\btagihan\b/i.test(line)?2:0;
+  if(!priority)return;
   const amount=amountFrom(line);
-  if(priority&&amount&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=amount;bestPriority=priority;bestIndex=index}
+  const next=lines[index+1];
+  const nextAmount=next&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next)?amountFrom(next):null;
+  const value=amount||nextAmount;
+  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index}
  });
  const detail=lines.filter(x=>/[a-zA-Z]{3}/.test(x)&&!ignore.test(x)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(x));
- const itemLines=detail.filter(x=>/[0-9]/.test(x)).map(x=>x.replace(/\b(?:rp|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ").replace(/[|:]/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>=3).slice(0,8);
+ const itemLines=detail.filter((x,i)=>/[0-9]/.test(x)||(lines[i+1]&&!/[a-zA-Z]{3}/.test(lines[i+1])&&/[0-9]/.test(lines[i+1])))
+  .map(x=>x.replace(/\b(?:rp|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ").replace(/[|:]/g," ").replace(/\s+/g," ").trim())
+  .filter(x=>x.length>=3).slice(0,8);
  const items=itemLines.length?itemLines:detail.slice(0,3);
  return {amount:best,title:(items.join(", ")||"Pembelian dari struk").slice(0,160),category:categoryFor(text),income:false};
 }
