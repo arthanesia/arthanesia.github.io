@@ -249,7 +249,7 @@ function parseReceiptText(rawText){
   if(!isDescription)return null;
   const amountOnSameLine=/[0-9]/.test(line);
   const next=lines[index+1];
-  const amountOnNextLine=!!next&&/[0-9]/.test(next)&&!/[\p{L}]{3}/u.test(next)&&!ignore.test(next);
+  const amountOnNextLine=!!next&&/[0-9]/.test(next)&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next);
   if(!amountOnSameLine&&!amountOnNextLine)return null;
   return line.replace(/\b(?:rp|idr)\b/ig," ")
    .replace(/\b[0-9][0-9.,]*\b/g," ")
