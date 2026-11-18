@@ -1,5 +1,36 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f7fb"><title>Download Arthanesia</title>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f7fb">
+<title>Download Arthanesia</title>
 <style>
-:root{--ink:#202341;--muted:#788098;--line:#e8eaf1;--purple:#5b55df;--bg:#f7f7fb}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);font:15px/1.6 Inter,system-ui,sans-serif;color:var(--ink);padding:20px}.card{width:min(100%,540px);background:white;border:1px solid var(--line);border-radius:22px;padding:30px;box-shadow:0 20px 65px #28265f10}.brand{font-weight:850;font-size:18px}.tag{font-size:10px;color:var(--purple);font-weight:850;letter-spacing:1.4px;margin-top:26px}h1{font-size:29px;line-height:1.15;letter-spacing:-1px;margin:8px 0}.muted{font-size:12px;color:var(--muted)}.btn{display:flex;justify-content:center;align-items:center;padding:14px;border-radius:12px;background:var(--purple);color:white;font-weight:800;text-decoration:none;margin-top:22px}.secondary{display:inline-block;margin-top:15px;font-size:11px;color:var(--purple);text-decoration:none}.note{font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:17px;margin-top:20px}
-</style></head><body><main class="card"><div class="brand">◈ Arthanesia</div><div class="tag">ANDROID APPLICATION</div><h1>Download Arthanesia</h1><p class="muted">Versi 0.6.3 · Android 8.0 ke atas.</p><a class="btn" href="https://github.com/arthanesia/arthanesia.github.io/releases/download/v0.6.3/Arthanesia.apk">Unduh APK Android ↗</a><a class="secondary" href="https://github.com/arthanesia/arthanesia.github.io/releases/tag/v0.6.3">Lihat catatan versi dan SHA-256 ↗</a><p class="note">Di halaman GitHub yang terbuka, pilih file Arthanesia.apk pada bagian Assets untuk mengunduh aplikasi resmi. Pastikan mengunduh dari GitHub resmi Arthanesia.</p><a class="secondary" href="/">← Kembali ke website Arthanesia</a></main></body></html>
+:root{color-scheme:light;--ink:#202341;--muted:#788098;--line:#e8eaf1;--purple:#514bd3;--bg:#f7f7fb}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--bg);color:var(--ink);font:15px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+.card{width:min(100%,540px);padding:30px;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 20px 65px #28265f10}
+.brand{font-weight:850;font-size:18px}
+.tag{margin-top:26px;color:var(--purple);font-size:10px;font-weight:850;letter-spacing:1.4px}
+h1{margin:8px 0;font-size:29px;line-height:1.15;letter-spacing:-1px}
+.muted{color:var(--muted);font-size:12px}
+.download-button{display:flex;width:100%;min-height:54px;align-items:center;justify-content:center;margin-top:22px;padding:14px;border:0;border-radius:12px;background:var(--purple);color:#fff;font:inherit;font-weight:800;text-decoration:none;cursor:pointer;pointer-events:auto;position:relative;z-index:5;touch-action:manipulation}
+.download-button:hover{background:#413bb8}
+.download-button:focus-visible{outline:3px solid #aaa6ff;outline-offset:3px}
+.fallback{display:block;margin-top:13px;text-align:center;color:var(--purple);font-size:12px;text-decoration:underline;position:relative;z-index:5;pointer-events:auto}
+.note{margin-top:20px;padding-top:17px;border-top:1px solid var(--line);color:var(--muted);font-size:10px}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand">◈ Arthanesia</div>
+  <div class="tag">ANDROID APPLICATION</div>
+  <h1>Download Arthanesia</h1>
+  <p class="muted">Versi 0.6.3 · Android 8.0 ke atas.</p>
+  <button class="download-button" type="button" onclick="window.location.assign('https://github.com/arthanesia/arthanesia.github.io/releases/latest/download/Arthanesia.apk')">Unduh APK Android ↓</button>
+  <a class="fallback" href="https://github.com/arthanesia/arthanesia.github.io/releases/latest/download/Arthanesia.apk">Klik di sini jika tombol tidak memulai unduhan</a>
+  <p class="note">Unduhan resmi Arthanesia melalui GitHub Releases. Bila diminta, izinkan browser mengunduh file APK.</p>
+  <a class="fallback" href="/">← Kembali ke website Arthanesia</a>
+</main>
+</body>
+</html>
