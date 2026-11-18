@@ -72,6 +72,18 @@ internal object TransactionIntelligence {
     }
 
     fun parseAmount(text: String): Long? {
+        val scaled = Regex("(?i)([0-9][0-9.,]*)\\\\s*(rb|ribu|jt|juta|miliar|milyar)\\\\b")
+            .findAll(text)
+            .lastOrNull()
+        if (scaled != null) {
+            val base = digitsToLong(scaled.groupValues[1]) ?: 0L
+            val multiplier = when (scaled.groupValues[2].lowercase(locale)) {
+                "rb", "ribu" -> 1_000L
+                "jt", "juta" -> 1_000_000L
+                else -> 1_000_000_000L
+            }
+            return runCatching { Math.multiplyExact(base, multiplier) }.getOrNull()
+        }
         val lines = text.lines().filter { it.isNotBlank() }
         val labeled = lines.filter { receiptTotalLabels.containsMatchIn(it) }
         for (line in labeled.asReversed()) {
