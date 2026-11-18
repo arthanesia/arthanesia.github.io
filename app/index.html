@@ -14,9 +14,38 @@
 @media(max-width:900px){.layout{grid-template-columns:1fr}.side{position:static;display:flex;overflow:auto;gap:4px}.navitem{white-space:nowrap;width:auto}.cards{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.wrap{width:calc(100% - 22px)}.top{height:62px}.layout{padding-top:13px}.side{display:none}.tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:6px 5px calc(6px + env(safe-area-inset-bottom));z-index:9;justify-content:space-around}.tabbar .navitem{font-size:9px;padding:7px 5px;text-align:center}.content{padding-bottom:68px}.cards{grid-template-columns:1fr 1fr}.cards .card:last-child{grid-column:1/-1}.cardvalue{font-size:20px}.heading{align-items:flex-start;flex-direction:column}.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}.auth{min-height:calc(100vh - 62px);padding:16px}.authcard{padding:22px}.topright .small{display:none}}
 @media print{.top,.side,.tabbar,.no-print,#authView,.footer{display:none!important}.layout{display:block;padding:0}.wrap{width:100%}.section,.card{break-inside:avoid;box-shadow:none}.content{padding:0}.tablewrap{overflow:visible}table{min-width:0;font-size:9px}}
- .market-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.market-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fcfcfe}.market-card .label{font-size:9px;color:var(--muted)}.market-card .value{font-size:16px;font-weight:850;margin:3px 0}.market-card .fresh{font-size:8px;color:var(--green);font-weight:800}.market-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.market-tools label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin-bottom:5px}.converter{display:grid;grid-template-columns:90px 1fr auto;gap:6px;align-items:center}.converter select,.converter input{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.converter strong{font-size:11px;white-space:nowrap}@media(max-width:600px){.market-grid{grid-template-columns:1fr 1fr}.market-tools{grid-template-columns:1fr}.converter{grid-template-columns:80px 1fr auto}}\n</style>\n</head>
+ .market-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.market-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fcfcfe}.market-card .label{font-size:9px;color:var(--muted)}.market-card .value{font-size:16px;font-weight:850;margin:3px 0}.market-card .fresh{font-size:8px;color:var(--green);font-weight:800}.market-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.market-tools label{display:block;font-size:9px;font-weight:800;color:var(--muted);margin-bottom:5px}.converter{display:grid;grid-template-columns:90px 1fr auto;gap:6px;align-items:center}.converter select,.converter input{padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}.converter strong{font-size:11px;white-space:nowrap}@media(max-width:600px){.market-grid{grid-template-columns:1fr 1fr}.market-tools{grid-template-columns:1fr}.converter{grid-template-columns:80px 1fr auto}}\n
+:root[data-theme="dark"]{--ink:#edf4fb;--muted:#a9bfd2;--line:#2a4055;--purple:#57aee8;--deep:#0c2942;--bg:#0a1724;--green:#57c7a1;--red:#ff8494;--gold:#e1b45d;--card:#13263a;color-scheme:dark}
+:root[data-theme="dark"] body,:root[data-theme="dark"] .section,:root[data-theme="dark"] .card,:root[data-theme="dark"] .authcard,:root[data-theme="dark"] .market-card{background:var(--card);color:var(--ink)}
+:root[data-theme="dark"] .top{background:#0d2032;border-color:var(--line)}
+:root[data-theme="dark"] .side{background:#102337;border-color:var(--line)}
+:root[data-theme="dark"] .section,:root[data-theme="dark"] .card,:root[data-theme="dark"] .authcard,:root[data-theme="dark"] .market-card{border-color:var(--line)}
+:root[data-theme="dark"] .btn,:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .field select,:root[data-theme="dark"] .field textarea{background:#0e2032;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .btn.primary{background:#176ca4;border-color:#176ca4;color:#fff}
+:root[data-theme="dark"] .navitem.active,:root[data-theme="dark"] .navitem:hover{background:#1b3c57;color:#b8e1ff}
+:root[data-theme="dark"] th{background:#172d42;color:var(--muted)}
+:root[data-theme="dark"] td,:root[data-theme="dark"] th{border-bottom-color:#263c50}
+:root[data-theme="dark"] .bubble{background:#1a3045;color:var(--ink)}
+:root[data-theme="dark"] .bubble.user{background:#1b4564}
+:root[data-theme="dark"] .entry-tool{background:#142b40;color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] .tabbar{background:#0e2032;border-color:var(--line)}
+:root[data-theme="dark"] .autherror,:root[data-theme="dark"] .notice{background:#462735;color:#ffc5ce}
+:root[data-theme="dark"] .pill{background:#164234;color:#98e7c5}
+:root[data-theme="dark"] .pill.red{background:#4a2531;color:#ffafba}
+.achievement-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.achievement{border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--bg)}
+.achievement.unlocked{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--card))}
+.achievement-title{font-size:11px;font-weight:850}
+.achievement-desc{font-size:9px;color:var(--muted);margin:3px 0 7px}
+.achievement-progress{height:5px;background:var(--line);border-radius:10px;overflow:hidden}
+.achievement-progress span{display:block;height:100%;background:var(--purple);border-radius:10px}
+.xp-card{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--bg)}
+.xp-level{height:48px;width:48px;flex:none;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#c58b34,#f2d18a);color:#27384a;font-size:18px;font-weight:900}
+@media(max-width:600px){.achievement-grid{grid-template-columns:1fr}}
+
+</style>\n</head>
 <body>
-<header class="top"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center"><a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="logo">A</span>Arthanesia <span class="muted" style="font-weight:500;font-size:12px">/ App</span></a><div class="topright"><span id="accountEmail" class="small muted"></span><button id="signOut" class="btn hidden">Keluar</button></div></div></header>
+<header class="top"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center"><a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="logo">A</span>Arthanesia <span class="muted" style="font-weight:500;font-size:12px">/ App</span></a><div class="topright"><button id="themeToggle" class="btn" type="button" aria-label="Ganti tema">☾</button><span id="accountEmail" class="small muted"></span><button id="signOut" class="btn hidden">Keluar</button></div></div></header>
 <main id="authView" class="auth">
 <section class="authcard">
 <div class="logo" style="height:46px;width:46px;border-radius:14px">A</div>
@@ -51,12 +80,33 @@
 <div class="heading"><div><h1>Ringkasan keuangan</h1><p id="workspaceName">Ruang kerja Anda</p></div><button class="btn primary no-print" data-goto="transactions">+ Catat transaksi</button></div>
 <div class="cards"><div class="card"><div class="cardlabel">Pemasukan · IDR</div><div class="cardvalue positive" id="sumIncome">Rp0</div></div><div class="card"><div class="cardlabel">Pengeluaran · IDR</div><div class="cardvalue negative" id="sumExpense">Rp0</div></div><div class="card"><div class="cardlabel">Saldo bersih · IDR</div><div class="cardvalue" id="sumNet">Rp0</div></div></div>
 <section class="section"><div class="secthead"><h2>Arus kas terbaru</h2><span class="small muted" id="syncStamp">Menyinkronkan...</span></div><div id="overviewRows" class="tablewrap"></div></section>
-<section class="section"><div class="secthead"><h2>Pasar</h2><span class="small muted" id="marketFreshness">Memuat...</span></div>
+<section class="section"><div class="secthead"><h2>Pasar & harga emas Indonesia</h2><span class="small muted" id="marketFreshness">Memuat...</span></div>
 <div class="market-grid" id="marketCards"></div>
 <div class="market-tools">
-<div><label>Konversi</label><div class="converter"><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select><input id="marketAmount" inputmode="decimal" value="1"><strong id="marketResult">Rp0</strong></div></div>
-<div><label>Nisab zakat · 250 g</label><div class="converter"><input id="zakatAmount" inputmode="decimal" placeholder="Nominal harta"><strong id="zakatResult">—</strong></div></div>
+<div><label>Konversi kurs</label><div class="converter"><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select><input id="marketAmount" inputmode="decimal" value="1"><strong id="marketResult">Rp0</strong></div></div>
+<div class="rates" id="marketSourceNote">Harga ritel dan buyback mengacu Logam Mulia ANTAM. Nisab memakai harga buyback sesuai acuan BAZNAS.</div>
 </div></section>
+<section class="section" id="zakatPanel">
+<div class="secthead"><h2>Kalkulator zakat</h2><span class="small muted">Nisab emas · 85 gram</span></div>
+<div class="market-grid">
+<div class="market-card"><div class="label">Nisab emas (nilai buyback)</div><div class="value" id="goldNisabValue">—</div><div class="fresh">85 gram · 2,5%</div></div>
+<div class="market-card"><div class="label">Harga buyback per gram</div><div class="value" id="goldBuybackValue">Belum tersedia</div><div class="fresh" id="goldPriceDate">ANTAM · harga harian</div></div>
+<div class="market-card"><div class="label">Harga jual ritel 1 gram</div><div class="value" id="goldRetailValue">Belum tersedia</div><div class="fresh">Termasuk pajak sesuai data provider</div></div>
+</div>
+<div class="market-tools">
+<div><label>Jumlah emas yang dimiliki (gram)</label><input id="goldGrams" inputmode="decimal" placeholder="Contoh: 100"></div>
+<div><label>Penyesuaian buyback (opsional)</label><input id="goldBuybackManual" inputmode="decimal" placeholder="Gunakan harga ANTAM otomatis"></div>
+</div>
+<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input id="goldHaul" type="checkbox"> Kepemilikan sudah mencapai haul satu tahun</label>
+<div id="goldZakatStatus" class="smart-status" aria-live="polite">Masukkan jumlah emas dan status haul untuk memeriksa kewajiban zakat.</div>
+<p class="small muted">Acuan BAZNAS: kepemilikan emas mencapai 85 gram, haul satu tahun, kadar 2,5%. Untuk nilai nisab, BAZNAS merujuk harga buyback ANTAM. Harga ritel dan buyback berbeda; pajak transaksi dapat berubah sesuai status NPWP dan nilai transaksi.</p>
+<div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:12px">
+<div class="secthead"><h2 style="margin:0">Zakat penghasilan · 2026</h2></div>
+<div class="market-grid">
+<div class="market-card"><div class="label">Pemasukan bulan ini</div><div class="value" id="incomeMonthValue">Rp0</div><div class="fresh">Nisab Rp7.640.144</div></div>
+<div class="market-card"><div class="label">Pemasukan tahun ini</div><div class="value" id="incomeYearValue">Rp0</div><div class="fresh">Nisab Rp91.681.728</div></div>
+<div class="market-card"><div class="label">Estimasi zakat</div><div class="value" id="incomeZakatValue">Rp0</div><div class="fresh" id="incomeZakatStatus">Belum mencapai nisab</div></div>
+</div></div></section>
 </section>
 <section id="page-transactions" class="page hidden">
 <div class="heading"><div><h1>Buku transaksi</h1><p>Nilai kurs disimpan saat transaksi dibuat.</p></div><div class="actions no-print"><button id="printReport" class="btn">Cetak / PDF</button><button id="exportCsv" class="btn">Ekspor CSV</button></div></div>
@@ -83,14 +133,15 @@
 </section>
 <section id="page-assistant" class="page hidden">
 <div class="heading"><div><h1>Artha AI</h1><p>Analisis ringkasan keuangan dari data akun ini.</p></div></div>
-<section class="section"><div id="aiMessages" class="chat"><div class="bubble ai">Halo. Saya Artha AI. Saya dapat membantu menganalisis arus kas dan pos pengeluaran berdasarkan ringkasan transaksi.</div></div>
-<div class="field"><label>Pertanyaan</label><textarea id="aiQuestion" rows="3" placeholder="Apa pengeluaran terbesar saya bulan ini?"></textarea></div>
-<label class="small"><input id="aiConsent" type="checkbox"> Saya setuju mengirim agregat transaksi (total dan kategori, bukan deskripsi atau foto struk) ke layanan AI untuk menjawab pertanyaan ini.</label>
-<div id="aiError" class="notice hidden"></div><button id="askAi" class="btn primary no-print" style="margin-top:12px">Tanya Artha AI</button></section>
+<section class="section"><div id="aiStatus" class="smart-status">AI online akan menganalisis ringkasan keuangan saat halaman ini dibuka.</div><div id="aiMessages" class="chat"><div class="bubble ai">Artha AI akan memuat analisis awal secara otomatis saat Anda membuka halaman ini.</div></div>
+<div class="field"><label>Pertanyaan lanjutan</label><textarea id="aiQuestion" rows="3" placeholder="Apa pengeluaran terbesar saya bulan ini?"></textarea></div>
+<div id="aiError" class="notice hidden"></div><button id="askAi" class="btn primary no-print" style="margin-top:12px">Tanya Artha AI online</button><p class="small muted">Analisis dilakukan online menggunakan Gemini. Yang dikirim hanya ringkasan transaksi dan total kategori; deskripsi transaksi dan foto struk tidak dikirim. Jika layanan AI online belum dikonfigurasi, aplikasi akan menampilkan kendala dan tidak mengganti jawaban dengan analisis lokal.</p></section>
 </section>
 <section id="page-profile" class="page hidden">
 <div class="heading"><div><h1>Profil & preferensi</h1><p>Pengaturan ruang kerja akun.</p></div></div>
 <section class="section"><div class="field"><label>Nama pemilik</label><input id="profileName"></div><div class="field"><label>Nama usaha</label><input id="profileBusiness"></div><div class="field"><label>Mata uang default</label><select id="profileCurrency"><option>IDR</option><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select></div><button id="saveProfile" class="btn primary no-print">Simpan profil</button><div id="profileMessage" class="small muted" style="margin-top:10px"></div></section>
+<section class="section"><div class="secthead"><h2>Pengalaman & pencapaian</h2><span class="small muted">Progres aktivitas akun</span></div><div id="achievementPanel"></div></section>
+<section class="section"><div class="secthead"><h2>Privasi & AI online</h2></div><p class="small muted">Saat Anda meminta analisis, ringkasan angka transaksi dan total kategori dikirim ke layanan AI online (Gemini) melalui server Arthanesia. Deskripsi transaksi, foto struk, password, dan data rekening tidak dikirim.</p></section>
 </section>
 </div>
 </div>
@@ -105,24 +156,58 @@ const URL="https://ixihqkifpmxruvjyfnrk.supabase.co";
 const KEY="sb_publishable_-kbqcW7De6AgeVLgBkTaPg_iD1EicRt";
 const sb=window.supabase?.createClient(URL,KEY);
 const $=id=>document.getElementById(id);
-let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null;
+let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null,aiAutoRequested=false,aiBusy=false;
 const money=v=>"Rp"+Math.round(Number(v||0)).toLocaleString("id-ID");
 function show(el){$(el).classList.remove("hidden")}function hide(el){$(el).classList.add("hidden")}
 function msg(id,text){$(id).textContent=text;show(id)}
-function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name))}
+function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
 function showAuth(text=""){show("authView");hide("appView");hide("signOut");if(text)msg("authMessage",text)}
 async function loadMarket(){
  try{
   const r=await fetch(URL+"/functions/v1/market-data",{headers:{apikey:KEY}});
-  if(!r.ok)throw new Error("Feed pasar belum tersedia.");
+  if(!r.ok)throw new Error("Feed pasar belum tersedia (HTTP "+r.status+").");
   market=await r.json();
-  $("marketText").textContent="Kurs referensi diperbarui "+(market.rateUpdatedAt||"—")+". Harga emas spot: "+money(market.gold?.idrPerGram)+" / gram. Kurs FX provider diperbarui harian; emas bukan harga retail Antam.";
-  refreshFxLabel();
- }catch(e){$("marketText").textContent=e.message||"Harga pasar sementara tidak tersedia."}
+  const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
+  $("marketFreshness").textContent="Data pasar · "+(antam.priceDate||antam.updatedAt||market.serverTime||"waktu tidak tersedia");
+  $("marketCards").innerHTML=[
+   ["ANTAM · Ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga jual ritel"+(antam.retailInclTaxIdrPerGram?" · termasuk pajak yang tercantum":"")],
+   ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali per gram"],
+   ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global · bukan harga retail"]
+  ].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
+  $("marketSourceNote").textContent="Sumber ANTAM Logam Mulia · harga ritel diperbarui harian, bukan tick-by-tick. Nisab emas memakai harga buyback. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
+  $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";
+  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
+  $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal harga tidak tersedia");
+  $("goldZakatStatus").textContent=buyback?"Harga buyback ANTAM tersedia. Masukkan gram dan status haul.":"Harga buyback otomatis belum tersedia. Masukkan harga buyback manual dari sumber tepercaya.";
+  refreshFxLabel();refreshMarketTools();renderZakat();
+ }catch(e){
+  $("marketFreshness").textContent="Harga pasar tidak tersedia";
+  $("marketCards").innerHTML='<div class="market-card"><div class="label">ANTAM retail / buyback</div><div class="value">Feed belum tersedia</div><div class="fresh">Periksa koneksi atau isi harga buyback manual</div></div>';
+  $("goldZakatStatus").textContent=e.message||"Harga emas sementara tidak tersedia.";
+  renderZakat();
+ }
 }
 function rateToIdr(currency){if(currency==="IDR")return 1;const r=Number(market?.rates?.[currency]||0);return r>0?r:0}
-function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";const gold=Number(market?.gold?.spotIdrPerGram||0),base=Number(($("zakatAmount")?.value||"0").replace(",",".")),nisab=gold*250;if($("zakatResult"))$("zakatResult").textContent=base&&gold?(base>=nisab?"Wajib · "+money(base*.025):"Belum mencapai nisab"):money(nisab);}
+function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";}
+function currentBuyback(){const raw=String($("goldBuybackManual")?.value||"").trim(),manual=Number(raw.replace(/\./g,"").replace(",",".").replace(/[^0-9.]/g,""));return manual>0?manual:Number(market?.antam?.buybackIdrPerGram||0)}
+function renderZakat(){
+ const buyback=currentBuyback(),grams=Number(($("goldGrams")?.value||"0").replace(",",".")),haul=!!$("goldHaul")?.checked,nisabValue=buyback*85,ownedValue=grams*buyback,meets=grams>=85&&buyback>0,eligible=meets&&haul;
+ $("goldNisabValue").textContent=buyback?money(nisabValue):"—";
+ $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
+ const status=!buyback?"Harga buyback belum tersedia. Masukkan harga manual untuk menghitung nisab."
+  :!(grams>0)?"Masukkan jumlah emas untuk memeriksa nisab."
+  :!meets?"Belum mencapai nisab. Kekurangan "+Math.max(0,85-grams).toFixed(2)+" gram."
+  :!haul?"Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
+  :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(ownedValue*.025)+".";
+ const el=$("goldZakatStatus");el.textContent=status;el.style.background=eligible?"#e8f7f0":"var(--bg)";el.style.color=eligible?"var(--green)":"var(--ink)";
+ const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
+ const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
+ const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
+ const monthMet=monthIncome>=7640144,yearMet=yearIncome>=91681728,incomeZakat=monthMet?monthIncome*.025:yearMet?yearIncome*.025:0;
+ $("incomeMonthValue").textContent=money(monthIncome);$("incomeYearValue").textContent=money(yearIncome);$("incomeZakatValue").textContent=money(incomeZakat);
+ $("incomeZakatStatus").textContent=monthMet?"Nisab bulanan terpenuhi":yearMet?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
+}
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
 function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
 function categoryFor(text,type="expense"){const t=String(text||"").toLowerCase();if(type==="income")return /jasa|servis|service|konsultasi|desain/.test(t)?"Pendapatan Jasa":"Penjualan";if(/bahan baku|tepung|gula|beras|kopi|susu|telur|daging|sayur|buah|bumbu|kemasan|plastik/.test(t))return "Bahan Baku";if(/bensin|solar|bbm|transport|parkir|tol|ojek|grab|gojek|kurir|ongkir/.test(t))return "Transportasi";if(/listrik|air|internet|wifi|telepon|pulsa|gas|pln/.test(t))return "Utilitas";if(/gaji|upah|honor|lembur|pegawai|karyawan/.test(t))return "Gaji";if(/iklan|ads|promosi|marketing|endorse|brosur|spanduk/.test(t))return "Marketing";if(/mesin|laptop|komputer|investasi|aset|renovasi/.test(t))return "Investasi";if(/alat tulis|atk|perlengkapan|sabun|tisu|kertas|printer/.test(t))return "Perlengkapan";if(/sewa|operasional|administrasi|maintenance|perawatan|kebersihan/.test(t))return "Operasional";return "Lainnya"}
@@ -132,20 +217,20 @@ function parseMoneyText(text){const raw=String(text),scaled=[...raw.matchAll(/([
 function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),income=/\b(pemasukan|pendapatan|penjualan|menerima|terima|masuk)\b/.test(t)&&!/\b(pengeluaran|beli|membeli|pembelian|bayar|belanja|biaya)\b/.test(t),type=income?"income":"expense",amount=parseMoneyText(raw);let title=raw.replace(/\b(?:rp|rupiah|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(?:nol|kosong|se|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|belas|puluh|ratus|seratus|seribu|ribu|sejuta|juta|miliar|milyar)\b/ig," ").replace(/\b(?:pengeluaran|pemasukan|pendapatan|penjualan|catat|transaksi|sebesar|senilai|sejumlah|nominal|uang)\b/ig," ").replace(/\s+/g," ").trim().replace(/^[,.:;\-]+|[,.:;\-]+$/g,"");if(!title)title=income?"Pemasukan usaha":"Pengeluaran usaha";return {type,amount,title:title.charAt(0).toUpperCase()+title.slice(1),category:categoryFor(t,type)}}
 async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
 function parseReceiptText(rawText){
- const text=String(rawText||"");
- const lines=text.split(/\n/).map(x=>x.trim()).filter(Boolean);
- const totals=lines.filter(x=>/grand\s*total|\btotal\b|\bjumlah\b|\bamount\s*due\b|\btagihan\b/i.test(x));
- const candidate=(totals.length?totals:lines.filter(x=>!/subtotal|diskon|discount|ppn|pajak|tax|kembali|change|cashier|kasir|invoice|struk|receipt/i.test(x)))
-   .flatMap(line=>[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[.,]/g,""))).filter(n=>n>0));
- const amount=candidate.length?(totals.length?candidate[candidate.length-1]:Math.max(...candidate)):null;
- const ignored=/subtotal|diskon|discount|ppn|pajak|tax|kembali|change|cashier|kasir|invoice|struk|receipt|grand\s*total|\btotal\b|\bjumlah\b/i;
- const detail=lines.filter(x=>/[a-zA-Z]{3}/.test(x)&&!ignored.test(x));
- const itemLines=detail.filter(x=>/[0-9]/.test(x))
-   .map(x=>x.replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\s+/g," ").trim())
-   .filter(Boolean).slice(0,5);
+ const text=String(rawText||""),lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
+ const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
+ const amountFrom=line=>{const values=[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[^0-9]/g,""))).filter(n=>n>0&&Number.isFinite(n));return values.length?values[values.length-1]:null};
+ let best=null,bestPriority=0,bestIndex=-1;
+ lines.forEach((line,index)=>{
+  if(ignore.test(line))return;
+  const priority=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i.test(line)?3:/\btotal\b|\btagihan\b/i.test(line)?2:0;
+  const amount=amountFrom(line);
+  if(priority&&amount&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=amount;bestPriority=priority;bestIndex=index}
+ });
+ const detail=lines.filter(x=>/[a-zA-Z]{3}/.test(x)&&!ignore.test(x)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(x));
+ const itemLines=detail.filter(x=>/[0-9]/.test(x)).map(x=>x.replace(/\b(?:rp|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ").replace(/[|:]/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>=3).slice(0,8);
  const items=itemLines.length?itemLines:detail.slice(0,3);
- const title=(items.join(", ")||"Pembelian dari struk").slice(0,120);
- return {amount,title,category:categoryFor(text),income:false};
+ return {amount:best,title:(items.join(", ")||"Pembelian dari struk").slice(0,160),category:categoryFor(text),income:false};
 }
 async function readReceipt(file){
  if(!file||!file.type.startsWith("image/"))throw new Error("Pilih foto struk JPG, PNG, atau WEBP.");
@@ -183,6 +268,14 @@ function render(){
  const term=$("searchTx").value.trim().toLowerCase();
  $("transactionRows").innerHTML=tableMarkup(rows.filter(x=>(x.description||"").toLowerCase().includes(term)||(x.category||"").toLowerCase().includes(term)),true);
  $("syncStamp").textContent=rows.length+" transaksi tersimpan di cloud";
+ renderAchievements();renderZakat();
+}
+function renderAchievements(){
+ const txCount=rows.length,cats=new Set(rows.map(x=>x.category).filter(Boolean)).size,income=rows.filter(x=>x.type==="income").reduce((s,x)=>s+Number(x.amount_base||0),0),expense=rows.filter(x=>x.type==="expense").reduce((s,x)=>s+Number(x.amount_base||0),0);
+ const activeDays=new Set(rows.filter(x=>Date.now()-new Date(x.occurred_at).getTime()<=7*86400000).map(x=>new Date(x.occurred_at).toISOString().slice(0,10))).size;
+ const badges=[["🧾","Langkah pertama","Catat transaksi pertamamu",Math.min(txCount,1),1],["📚","Pembukuan konsisten","Kumpulkan 10 transaksi",Math.min(txCount,10),10],["🧭","Kenali pola usaha","Gunakan 4 kategori transaksi",Math.min(cats,4),4],["📅","Aktif mingguan","Catat pada 5 hari berbeda dalam 7 hari",Math.min(activeDays,5),5],["💰","Pemasukan pertama","Catat pemasukan minimal Rp1 juta",income>=1000000?1:0,1],["🌱","Arus kas positif","Pemasukan di atas pengeluaran dengan 5+ transaksi",txCount>=5&&income>expense?1:0,1]];
+ const unlocked=badges.filter(x=>x[3]>=x[4]).length,xp=txCount*10+unlocked*25,level=Math.floor(xp/250)+1,progress=xp%250;
+ $("achievementPanel").innerHTML='<div class="xp-card"><div class="xp-level">'+level+'</div><div style="flex:1"><strong>Level '+level+' · Pengelola Usaha</strong><div class="small muted">'+xp+' XP · '+unlocked+'/'+badges.length+' badge terbuka</div><div class="achievement-progress" style="margin-top:7px"><span style="width:'+(progress/250*100)+'%"></span></div><div class="small muted" style="margin-top:4px">'+progress+'/250 XP menuju level berikutnya</div></div></div><div class="achievement-grid">'+badges.map(b=>{const ok=b[3]>=b[4];return '<div class="achievement '+(ok?'unlocked':'')+'"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:19px">'+b[0]+'</span><span class="achievement-title" style="flex:1">'+b[1]+'</span><span class="small '+(ok?'positive':'muted')+'">'+(ok?'TERBUKA':b[3]+'/'+b[4])+'</span></div><div class="achievement-desc">'+b[2]+'</div>'+(ok?'':'<div class="achievement-progress"><span style="width:'+Math.min(100,b[3]/b[4]*100)+'%"></span></div>')+'</div>'}).join("")+'</div><p class="small muted" style="margin:10px 0 0">XP dan badge bertambah otomatis dari aktivitas transaksi yang tersimpan di akun Anda.</p>';
 }
 function tableMarkup(list,withDelete){
  if(!list.length)return '<div class="empty">Belum ada transaksi. Tambahkan transaksi pertama Anda.</div>';
@@ -216,13 +309,16 @@ $("authForm").addEventListener("submit",async e=>{
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
 $("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);});
-$("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=null;rows=[];showAuth("Anda sudah keluar.")});
+$("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=null;rows=[];aiAutoRequested=false;showAuth("Anda sudah keluar.")});
+function applyTheme(theme){const selected=theme==="dark"?"dark":"light";document.documentElement.dataset.theme=selected;localStorage.setItem("arthanesia-theme",selected);$("themeToggle").textContent=selected==="dark"?"☀":"☾";$("themeToggle").setAttribute("aria-label",selected==="dark"?"Aktifkan tema terang":"Aktifkan tema gelap");}
+applyTheme(localStorage.getItem("arthanesia-theme")||"light");
+$("themeToggle").addEventListener("click",()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.page)));
 document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.goto)));
 $("txCurrency").addEventListener("change",refreshFxLabel);
  $("txReceipt").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Struk gagal dibaca.",true)}});
  $("voiceEntry").addEventListener("click",startVoiceEntry);
-$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("zakatAmount").addEventListener("input",refreshMarketTools);
+$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("goldGrams").addEventListener("input",renderZakat);$("goldBuybackManual").addEventListener("input",renderZakat);$("goldHaul").addEventListener("change",renderZakat);
 $("searchTx").addEventListener("input",render);
 $("transactionRows").addEventListener("click",async e=>{
  const b=e.target.closest("[data-delete]");if(!b)return;
@@ -262,18 +358,23 @@ $("saveProfile").addEventListener("click",async()=>{
  if(error){$("profileMessage").textContent=error.message;return;}
  profile=payload;$("txCurrency").value=payload.default_currency;refreshFxLabel();$("workspaceName").textContent=payload.business_name||payload.full_name;$("profileMessage").textContent="Profil berhasil disimpan.";
 });
-$("askAi").addEventListener("click",async()=>{
- hide("aiError");
- if(!$("aiConsent").checked){msg("aiError","Setujui pengiriman agregat transaksi sebelum meminta AI cloud.");return;}
- const question=$("aiQuestion").value.trim();if(!question)return;
- const button=$("askAi");button.disabled=true;button.textContent="Menganalisis...";
- addBubble(question,"user");$("aiQuestion").value="";
+async function runAiAnalysis(question){
+ if(!user||aiBusy)return;
+ hide("aiError");aiBusy=true;
+ const button=$("askAi");button.disabled=true;button.textContent="Menghubungkan AI online...";
+ if(question&&!question.startsWith("Analisis otomatis"))addBubble(question,"user");
+ if($("aiStatus"))$("aiStatus").textContent="Mengirim ringkasan transaksi ke layanan AI cloud...";
  try{
-  const {data,error}=await sb.functions.invoke("artha-assistant",{body:{question,consent:true}});
-  if(error)throw error;if(data?.error)throw new Error(data.error);addBubble(data.answer||"AI belum memberikan jawaban.","ai");
- }catch(error){msg("aiError",error.message||"AI cloud belum tersedia. Pastikan GEMINI_API_KEY dikonfigurasi.")}
- finally{button.disabled=false;button.textContent="Tanya Artha AI";}
-});
+  const {data,error}=await sb.functions.invoke("artha-assistant",{body:{question}});
+  if(error)throw error;if(data?.error)throw new Error(data.error);
+  addBubble(data.answer||"AI online belum memberikan jawaban.","ai");
+  if($("aiStatus"))$("aiStatus").textContent="Terhubung · "+(data.provider||"AI cloud")+" · "+(data.transactionCount??rows.length)+" transaksi dianalisis";
+ }catch(error){
+  msg("aiError",error.message||"AI online belum tersedia. Pastikan GEMINI_API_KEY sudah diatur pada Supabase.");
+  if($("aiStatus"))$("aiStatus").textContent="AI online belum tersambung. Tidak ada analisis lokal yang dijalankan.";
+ }finally{aiBusy=false;button.disabled=false;button.textContent="Tanya Artha AI online";}
+}
+$("askAi").addEventListener("click",()=>{const question=$("aiQuestion").value.trim()||"Perbarui analisis otomatis kondisi keuangan usaha saya."; $("aiQuestion").value="";runAiAnalysis(question);});
 function addBubble(text,who){const div=document.createElement("div");div.className="bubble "+who;div.textContent=text;$("aiMessages").appendChild(div);div.scrollIntoView({block:"nearest"});}
 $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
