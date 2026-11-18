@@ -80,7 +80,7 @@ internal object TransactionIntelligence {
     }
 
     fun parseAmount(text: String): Long? {
-        val scaled = Regex("""(?i)([0-9][0-9.,]*)\\s*(rb|ribu|jt|juta|miliar|milyar)\\b""")
+        val scaled = Regex("""(?i)([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b""")
             .findAll(text)
             .lastOrNull()
         if (scaled != null) {
