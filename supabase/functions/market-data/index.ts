@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
   let fx: any = null;
   let gold: any = null;
   let antam: ReturnType<typeof parseAntamDailyCsv> | null = null;
-  const year = new Date().toISOString().slice(0, 4);
+  const year = jakartaDate().slice(0, 4);
   const antamCsvUrl = `https://raw.githubusercontent.com/hafidznrg/gold-price-tracker/main/data/prices/logammulia/${year}.csv`;
 
   const [fxResult, goldResult, antamResult] = await Promise.allSettled([
