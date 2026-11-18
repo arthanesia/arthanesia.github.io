@@ -6,6 +6,12 @@ const html = fs.readFileSync("app/index.html", "utf8");
 const inlineScripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 assert.ok(inlineScripts.length > 0, "PWA inline script must exist");
 
+assert.ok(html.includes('id="togglePassword"'), "web login password must be hidden with a visibility toggle");
+assert.ok(html.includes('resetPasswordForEmail'), "web login must expose password recovery");
+assert.ok(html.includes('PASSWORD_RECOVERY'), "web app must handle the password recovery callback");
+assert.ok(html.includes('identities.length===0'), "duplicate email sign-up must be recognized");
+assert.ok(!html.includes('id="aiConsent"'), "AI analysis must not require per-request consent checkbox");
+
 for (const [index, match] of inlineScripts.entries()) {
   new vm.Script(match[1], { filename: `app/index.html inline script ${index + 1}` });
 }
