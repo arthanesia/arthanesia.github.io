@@ -24,7 +24,11 @@ internal data class MarketData(
     val ratesPerIdr: Map<String, Double>,
     val goldIdrPerGram: Double,
     val fxUpdatedAt: String,
-    val goldUpdatedAt: String
+    val goldUpdatedAt: String,
+    val antamRetailIdrPerGram: Double = 0.0,
+    val antamRetailInclTaxIdrPerGram: Double = 0.0,
+    val antamBuybackIdrPerGram: Double = 0.0,
+    val antamUpdatedAt: String = ""
 )
 
 internal data class CloudProfile(
@@ -294,19 +298,23 @@ internal object SupabaseApi {
         val ratesJson = obj.getJSONObject("rates")
         val rates = mutableMapOf<String, Double>()
         ratesJson.keys().forEach { code -> rates[code] = ratesJson.optDouble(code, 0.0) }
-        val gold = obj.getJSONObject("gold")
+        val gold = obj.optJSONObject("gold") ?: JSONObject()
+        val antam = obj.optJSONObject("antam") ?: JSONObject()
         MarketData(
             ratesPerIdr = rates,
-            goldIdrPerGram = gold.optDouble("idrPerGram", 0.0),
-            fxUpdatedAt = obj.optString("rateUpdatedAt"),
-            goldUpdatedAt = gold.optString("updatedAt")
+            goldIdrPerGram = gold.optDouble("spotIdrPerGram", gold.optDouble("idrPerGram", 0.0)),
+            fxUpdatedAt = obj.optString("rateUpdatedAt", obj.optJSONObject("fx")?.optString("updatedAt") ?: ""),
+            goldUpdatedAt = gold.optString("updatedAt"),
+            antamRetailIdrPerGram = antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0)),
+            antamRetailInclTaxIdrPerGram = antam.optDouble("retailInclTaxIdrPerGram", antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0))),
+            antamBuybackIdrPerGram = antam.optDouble("buybackIdrPerGram", 0.0),
+            antamUpdatedAt = antam.optString("updatedAt", "")
         )
     }
 
-    suspend fun askAssistant(session: CloudSession, question: String, consent: Boolean): String = withContext(Dispatchers.IO) {
+    suspend fun askAssistant(session: CloudSession, question: String): String = withContext(Dispatchers.IO) {
         val payload = JSONObject()
             .put("question", question)
-            .put("consent", consent)
         val response = request(
             "POST",
             "/functions/v1/artha-assistant",
