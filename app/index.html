@@ -178,12 +178,12 @@ async function loadMarket(){
   const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
   $("marketFreshness").textContent=(antam.stale?"Data ANTAM usang · ":"Data ANTAM · ")+(antam.priceDate||antam.updatedAt||market.serverTime||"waktu tidak tersedia");
   $("marketCards").innerHTML=[
-   ["ANTAM · Ritel + estimasi pajak",retail?money(retail):"Tidak tersedia","PPh 22 estimasi NPWP 0,25% · tanpa NPWP 0,5%"],
+   ["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga untuk konsumen akhir · PPh 22 tidak dipungut"],
    ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali per gram"],
    ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global · bukan harga retail"]
   ].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
   $("marketSourceNote").textContent="Sumber Logam Mulia ANTAM melalui feed harga harian. "+(antam.stale?"PERINGATAN: data lebih dari 36 jam. ":"")+
-   "Harga jual di atas termasuk estimasi PPh 22 untuk pembeli ber-NPWP; tanpa NPWP gunakan estimasi 0,5%. Buyback di atas Rp10 juta: PPh 22 estimasi 1,5% (NPWP) / 3% (tanpa NPWP). Perhitungan zakat memakai buyback bruto, bukan setelah pajak. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
+   "Konsumen akhir tidak dipungut PPh 22 atas pembelian emas; tarif umum pelaku usaha 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: PPh 22 1,5% (NPWP) / 3% (tanpa NPWP). Perhitungan zakat memakai buyback bruto. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
   $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";
   $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
   $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal harga tidak tersedia");
