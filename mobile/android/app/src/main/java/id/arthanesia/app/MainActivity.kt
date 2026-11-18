@@ -32,6 +32,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
@@ -264,7 +266,7 @@ private fun ArthanesiaApp() {
                             try {
                                 val session = SupabaseApi.signUp(name, biz, email, password)
                                 if (session == null) {
-                                    authError = "Akun berhasil didaftarkan. Verifikasi email terlebih dahulu, lalu masuk."
+                                    authError = "Akun dibuat. Buka email untuk verifikasi, lalu masuk. Bila email tidak datang, gunakan Kirim ulang verifikasi."
                                 } else {
                                     appDatabase.bindUnclaimedDataToFirstAccount(session.userId)
                                     owner = name.trim()
@@ -278,6 +280,35 @@ private fun ArthanesiaApp() {
                                 }
                             } catch (e: Exception) {
                                 authError = e.message ?: "Pendaftaran gagal."
+                            } finally {
+                                authBusy = false
+                            }
+                        }
+                    },
+                    dark = dark,
+                    onRecoverPassword = { email ->
+                        coroutineScope.launch {
+                            authBusy = true
+                            authError = ""
+                            try {
+                                SupabaseApi.recoverPassword(email)
+                                authError = "Jika email tersebut terdaftar, tautan pemulihan password sudah dikirim. Periksa kotak masuk dan spam."
+                            } catch (e: Exception) {
+                                authError = e.message ?: "Reset password gagal."
+                            } finally {
+                                authBusy = false
+                            }
+                        }
+                    },
+                    onResendConfirmation = { email ->
+                        coroutineScope.launch {
+                            authBusy = true
+                            authError = ""
+                            try {
+                                SupabaseApi.resendSignupConfirmation(email)
+                                authError = "Jika akun memerlukan verifikasi, email verifikasi sudah dikirim ulang."
+                            } catch (e: Exception) {
+                                authError = e.message ?: "Email verifikasi belum dapat dikirim ulang."
                             } finally {
                                 authBusy = false
                             }
@@ -428,15 +459,21 @@ private fun LoginScreen(
     busy: Boolean,
     error: String,
     onSignIn: (String, String) -> Unit,
-    onSignUp: (String, String, String, String) -> Unit
+    onSignUp: (String, String, String, String) -> Unit,
+    dark: Boolean,
+    onRecoverPassword: (String) -> Unit,
+    onResendConfirmation: (String) -> Unit
 ) {
     var mode by remember { mutableStateOf("signin") }
     var name by remember { mutableStateOf(initialOwner) }
     var business by remember { mutableStateOf(initialBusiness) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    val pageBackground = if (dark) listOf(Color(0xFF081522), Color(0xFF10243A)) else listOf(Color(0xFFEAF4FB), Color(0xFFFAFCFE))
+    val cardBackground = if (dark) Color(0xFF14263A) else Color.White
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFEAF4FB), Color(0xFFFAFCFE))))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(pageBackground))
     ) {
         val compact = maxWidth < 600.dp
         Column(
@@ -454,25 +491,42 @@ private fun LoginScreen(
             Card(
                 Modifier.fillMaxWidth().widthIn(max = 440.dp),
                 shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(6.dp)
+                colors = CardDefaults.cardColors(containerColor = cardBackground),
+                elevation = CardDefaults.cardElevation(if (dark) 0.dp else 6.dp)
             ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
-                    Text(if (mode == "signin") "Masuk ke akun" else "Buat akun Arthanesia", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202440))
+                    Text(if (mode == "signin") "Masuk ke akun" else "Buat akun Arthanesia", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text("Gunakan akun pribadi untuk menyimpan data keuangan dan menyinkronkannya antarperangkat.", fontSize = 11.sp, color = Muted)
                     if (mode == "signup") {
                         OutlinedTextField(name, { name = it }, label = { Text("Nama pemilik") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                         OutlinedTextField(business, { business = it }, label = { Text("Nama usaha") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     }
                     OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
-                    OutlinedTextField(password, { password = it }, label = { Text("Password (min. 8 karakter)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text(if (mode == "signup") "Password (min. 8 karakter)" else "Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (passwordVisible) "Sembunyikan password" else "Tampilkan password"
+                                )
+                            }
+                        }
+                    )
                     if (error.isNotBlank()) Text(error, color = Red, fontSize = 10.sp)
                     Button(
                         onClick = {
                             if (mode == "signin") onSignIn(email, password)
                             else onSignUp(name, business, email, password)
                         },
-                        enabled = !busy && email.contains("@") && password.length >= 8 &&
+                        enabled = !busy && email.trim().contains("@") &&
+                            (if (mode == "signin") AuthFlowRules.canSignIn(password) else AuthFlowRules.canSignUp(password)) &&
                             (mode == "signin" || (name.isNotBlank() && business.isNotBlank())),
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp)
@@ -480,16 +534,32 @@ private fun LoginScreen(
                         if (busy) CircularProgressIndicator(Modifier.size(17.dp), color = Color.White, strokeWidth = 2.dp)
                         else Text(if (mode == "signin") "Masuk" else "Daftar akun")
                     }
+                    if (mode == "signin") {
+                        TextButton(
+                            onClick = { onRecoverPassword(email) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy && email.trim().contains("@")
+                        ) {
+                            Text("Lupa password? Kirim tautan pemulihan")
+                        }
+                        if (error.contains("verifikasi", ignoreCase = true) || error.contains("confirm", ignoreCase = true)) {
+                            TextButton(
+                                onClick = { onResendConfirmation(email) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !busy && email.trim().contains("@")
+                            ) { Text("Kirim ulang email verifikasi") }
+                        }
+                    }
                     TextButton(
-                        onClick = { mode = if (mode == "signin") "signup" else "signin" },
+                        onClick = { mode = if (mode == "signin") "signup" else "signin"; passwordVisible = false },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !busy
                     ) {
                         Text(if (mode == "signin") "Belum punya akun? Daftar" else "Sudah punya akun? Masuk")
                     }
                     Text(
-                        "Data transaksi disimpan lokal terlebih dahulu dan disinkronkan setelah akun berhasil masuk. Sesi disimpan terenkripsi menggunakan Android Keystore.",
-                        color = Muted, fontSize = 9.sp
+                        "Password selalu disembunyikan saat diketik. Data cloud tidak dihapus saat aplikasi diperbarui; gunakan akun lama atau pemulihan password.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
                     )
                 }
             }
