@@ -28,7 +28,15 @@ internal data class MarketData(
     val antamRetailIdrPerGram: Double = 0.0,
     val antamRetailInclTaxIdrPerGram: Double = 0.0,
     val antamBuybackIdrPerGram: Double = 0.0,
-    val antamUpdatedAt: String = ""
+    val antamUpdatedAt: String = "",
+    val antamPriceDate: String = "",
+    val antamSourceUpdatedAt: String = "",
+    val antamStale: Boolean = true,
+    val pph22PurchaseWithNpwp: Double = 0.0025,
+    val pph22PurchaseWithoutNpwp: Double = 0.005,
+    val pph22BuybackThreshold: Long = 10_000_000L,
+    val pph22BuybackWithNpwp: Double = 0.015,
+    val pph22BuybackWithoutNpwp: Double = 0.03
 )
 
 internal data class CloudProfile(
@@ -337,7 +345,15 @@ internal object SupabaseApi {
             antamRetailIdrPerGram = antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0)),
             antamRetailInclTaxIdrPerGram = antam.optDouble("retailInclTaxIdrPerGram", antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0))),
             antamBuybackIdrPerGram = antam.optDouble("buybackIdrPerGram", 0.0),
-            antamUpdatedAt = antam.optString("updatedAt", "")
+            antamUpdatedAt = antam.optString("updatedAt", ""),
+            antamPriceDate = antam.optString("priceDate", ""),
+            antamSourceUpdatedAt = antam.optString("sourceUpdatedAt", ""),
+            antamStale = antam.optBoolean("stale", true),
+            pph22PurchaseWithNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22WithNpwp", 0.0025) ?: 0.0025,
+            pph22PurchaseWithoutNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22WithoutNpwp", 0.005) ?: 0.005,
+            pph22BuybackThreshold = antam.optJSONObject("tax")?.optLong("buybackPph22ThresholdIdr", 10_000_000L) ?: 10_000_000L,
+            pph22BuybackWithNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithNpwp", 0.015) ?: 0.015,
+            pph22BuybackWithoutNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithoutNpwp", 0.03) ?: 0.03
         )
     }
 
