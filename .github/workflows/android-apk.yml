@@ -6,6 +6,11 @@ on:
     paths:
       - "mobile/android/**"
       - ".github/workflows/android-apk.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/android/**"
+      - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,7 +45,7 @@ jobs:
           gradle-version: "9.3.1"
 
       - name: Build debug APK
-        run: gradle --no-daemon -p mobile/android :app:assembleDebug
+        run: gradle --no-daemon -p mobile/android :app:testDebugUnitTest :app:assembleDebug
 
       - name: Prepare named APK
         run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/android/app/build/outputs/apk/debug/Arthanesia.apk
@@ -54,6 +59,7 @@ jobs:
           retention-days: 30
 
       - name: Publish Android APK release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.6.3
