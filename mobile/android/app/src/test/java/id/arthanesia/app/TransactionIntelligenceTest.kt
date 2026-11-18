@@ -26,6 +26,15 @@ class TransactionIntelligenceTest {
     }
 
     @Test
+    fun numericSpeechWithThousandUnitIsScaled() {
+        val result = TransactionIntelligence.fromVoice("pengeluaran 5 ribu beli bahan baku")
+
+        assertEquals(5_000L, result.amount)
+        assertEquals("Beli bahan baku", result.title)
+        assertEquals("Bahan Baku", result.category)
+    }
+
+    @Test
     fun smallNumericVoiceAmountIsAccepted() {
         val result = TransactionIntelligence.fromVoice("pengeluaran 50 beli air minum")
 
