@@ -66,7 +66,7 @@
 <button id="voiceEntry" class="entry-tool" type="button">🎙 VoiceCash<span>Contoh: Pengeluaran 5.000 beli bahan baku</span></button>
 <label class="entry-tool" for="txReceipt">📷 Pindai foto struk<span>Ekstrak nominal dan kategori otomatis · foto diproses di perangkat</span></label>
 </div>
-<p class="small muted">Pengenalan suara browser dapat memerlukan koneksi internet dan bergantung pada dukungan browser.</p>
+<p class="small muted">Voice browser bergantung pada dukungan browser; pada sebagian perangkat audio dikirim ke layanan pengenalan suara online.</p>
 <div id="txSmartStatus" class="smart-status hidden" aria-live="polite"></div>
 <form id="transactionForm" class="formgrid">
 <div class="field"><label>Jenis</label><select id="txType"><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></div>
@@ -98,7 +98,7 @@
 <footer class="footer">Arthanesia</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"></script>
 <script>
 (() => {
 const URL="https://ixihqkifpmxruvjyfnrk.supabase.co";
