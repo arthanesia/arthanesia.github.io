@@ -12,6 +12,8 @@ on:
     branches: [main]
     paths:
       - "mobile/android/**"
+      - "app/**"
+      - "scripts/**"
       - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
