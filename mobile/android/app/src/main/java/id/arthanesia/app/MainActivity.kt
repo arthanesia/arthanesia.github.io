@@ -212,6 +212,17 @@ private fun ArthanesiaApp() {
     }
 
     MaterialTheme(colorScheme = colors) {
+        SideEffect {
+            val window = (context as? ComponentActivity)?.window
+            if (window != null) {
+                val barColor = if (dark) android.graphics.Color.rgb(12, 25, 40) else android.graphics.Color.rgb(245, 248, 251)
+                window.statusBarColor = barColor
+                window.navigationBarColor = barColor
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = if (dark) 0 else
+                    android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            }
+        }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             if (!loggedIn) {
                 LoginScreen(
@@ -336,10 +347,10 @@ private fun ArthanesiaApp() {
                             )
                             Page.ANALYTICS -> AnalyticsScreen(entries, incomeTotal, expenseTotal)
                             Page.GOALS -> GoalsScreen(goals, onAdd = { showGoal = true })
-                            Page.ZAKAT -> ZakatScreen(entries)
+                            Page.ZAKAT -> ZakatScreen(entries, fxMarketData)
                             Page.TAX -> TaxScreen(entries)
                             Page.ASSISTANT -> AssistantScreen(balance, incomeTotal, expenseTotal, entries, business, cloudSession)
-                            Page.PROFILE -> ProfileScreen(owner, business, currency, dark,
+                            Page.PROFILE -> ProfileScreen(owner, business, currency, dark, entries, goals,
                                 onCurrency = { currency = it; appDatabase.saveSetting("currency", it) },
                                 onTheme = { dark = !dark; appDatabase.saveSetting("dark", dark.toString()) },
                                 onLogout = {
@@ -436,7 +447,7 @@ private fun LoginScreen(
         ) {
             WalletLogo(if (compact) 72.dp else 88.dp)
             Spacer(Modifier.height(12.dp))
-            Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
+            Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
             Text("Keuangan usaha, lebih terarah", fontSize = 11.sp, color = Muted)
             Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
             Spacer(Modifier.height(18.dp))
@@ -600,11 +611,15 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
         }
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
-                SectionTitle("ArthaScore", "Skor kesehatan finansial dari catatan")
+                val score = (50 + (if (entries.size >= 5) 15 else entries.size * 3) + (if (balance >= 0 && entries.isNotEmpty()) 20 else 0) + (if (income > 0) 15 else 0)).coerceIn(0, 100)
+                SectionTitle("ArthaScore", "Indikator sederhana dari aktivitas pembukuan")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("82", fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, color = Brand)
+                    Text("$score", fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(8.dp))
-                    Column { Text("Kondisi sehat", color = Green, fontSize = 12.sp, fontWeight = FontWeight.Bold); Text("Jaga keseimbangan arus kas.", fontSize = 10.sp, color = Muted) }
+                    Column {
+                        Text(if (score >= 80) "Aktivitas sehat" else if (score >= 60) "Terus berkembang" else "Mulai bangun kebiasaan", color = if (score >= 80) Green else MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Skor ini indikator penggunaan, bukan penilaian kredit.", fontSize = 9.sp, color = Muted)
+                    }
                 }
             }
         }
@@ -893,81 +908,159 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun ZakatScreen(entries: List<MoneyEntry>) {
-    var market by remember { mutableStateOf<MarketData?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var marketError by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        while (true) {
-            runCatching { SupabaseApi.fetchMarketData() }
-                .onSuccess { market = it; marketError = "" }
-                .onFailure { marketError = "Feed harga belum tersedia. Periksa koneksi." }
-            loading = false
-            delay(15 * 60 * 1000L)
-        }
-    }
+private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
+    var mode by remember { mutableStateOf("emas") }
+    var goldGramsText by remember { mutableStateOf("") }
+    var haulComplete by remember { mutableStateOf(false) }
+    var priceOverrideText by remember { mutableStateOf("") }
+
+    val officialBuyback = market?.antamBuybackIdrPerGram ?: 0.0
+    val manualBuyback = parseCurrencyAmount(priceOverrideText)
+    val buybackPerGram = if (manualBuyback > 0) manualBuyback else officialBuyback
+    val retailPerGram = market?.antamRetailInclTaxIdrPerGram?.takeIf { it > 0 }
+        ?: market?.antamRetailIdrPerGram?.takeIf { it > 0 } ?: 0.0
+    val ownedGrams = goldGramsText.trim().replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
+    val nisabGrams = 85.0
+    val nisabValue = (buybackPerGram * nisabGrams).toLong()
+    val meetsGoldNisab = ownedGrams >= nisabGrams
+    val goldEligible = buybackPerGram > 0 && meetsGoldNisab && haulComplete
+    val goldValue = (ownedGrams * buybackPerGram).toLong()
+    val goldZakat = if (goldEligible) (goldValue * 0.025).toLong() else 0L
+
     val year = java.time.LocalDate.now().year
     val annualIncome = entries.filter { it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
-    val annualExpense = entries.filter { !it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
-    val netIncome = (annualIncome - annualExpense).coerceAtLeast(0L)
-    val goldPerGram = market?.goldIdrPerGram ?: 0.0
-    val nisab = goldPerGram * 250.0
-    val reachesNisab = nisab > 0 && netIncome >= nisab
-    val zakat = if (reachesNisab) (netIncome * 0.025).toLong() else 0L
+    val annualIncomeNisab = 91_681_728L
+    val incomeEligible = annualIncome >= annualIncomeNisab
+    val incomeZakat = if (incomeEligible) (annualIncome * 0.025).toLong() else 0L
 
     ScreenColumn {
-        SectionTitle("Zakat Penghasilan", "Nisab konfigurasi Arthanesia: 250 gram emas")
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("HARGA EMAS SPOT · IDR", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    if (loading && market == null) "Memuat harga..." else if (goldPerGram > 0) "${rupiah(goldPerGram.toLong())} / gram" else "Harga tidak tersedia",
-                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
-                )
-                Text(if (nisab > 0) "Nisab 250 g: ${rupiah(nisab.toLong())}" else "Nilai nisab belum dapat dihitung", color = Color.White.copy(.78f), fontSize = 10.sp)
-                Text("Sumber XAU spot · bukan harga retail Antam", color = Color.White.copy(.65f), fontSize = 9.sp)
-            }
+        SectionTitle("Kalkulator Zakat", "Perhitungan berdasarkan harga emas Indonesia dan ketentuan BAZNAS")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = mode == "emas", onClick = { mode = "emas" }, label = { Text("Zakat emas") })
+            FilterChip(selected = mode == "penghasilan", onClick = { mode = "penghasilan" }, label = { Text("Zakat penghasilan") })
         }
-        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("Periode tahun $year", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Penghasilan bruto tercatat", color = Muted, fontSize = 10.sp)
-                    Text(rupiah(annualIncome), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+
+        if (mode == "emas") {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("REFERENSI HARGA ANTAM · INDONESIA", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .8.sp)
+                    Text(
+                        if (retailPerGram > 0) "${rupiah(retailPerGram.toLong())} / gram"
+                        else "Harga ritel belum tersedia",
+                        color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
+                    )
+                    Text("Harga jual ritel ANTAM 1 gram (referensi, dapat berubah)", color = Color.White.copy(.75f), fontSize = 9.sp)
+                    Divider(color = Color.White.copy(.2f))
+                    Text(
+                        if (buybackPerGram > 0) "Buyback ANTAM: ${rupiah(buybackPerGram.toLong())} / gram"
+                        else "Harga buyback belum berhasil dimuat",
+                        color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        if (nisabValue > 0) "Nilai nisab 85 gram: ${rupiah(nisabValue)}"
+                        else "Nilai nisab menunggu harga buyback",
+                        color = Color.White.copy(.8f), fontSize = 10.sp
+                    )
+                    Text(
+                        "Sumber: Logam Mulia ANTAM · ${market?.antamUpdatedAt?.ifBlank { "waktu pengambilan tidak tersedia" } ?: "menunggu data"}",
+                        color = Color.White.copy(.65f), fontSize = 8.sp
+                    )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Pengeluaran tercatat", color = Muted, fontSize = 10.sp)
-                    Text(rupiah(annualExpense), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                }
-                Divider()
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Dasar penghasilan bersih", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(rupiah(netIncome), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-                LinearProgressIndicator(
-                    progress = { if (nisab > 0) (netIncome / nisab).toFloat().coerceIn(0f, 1f) else 0f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = if (reachesNisab) Green else Brand
-                )
-                Text(
-                    if (reachesNisab) "Mencapai nisab · estimasi zakat 2,5%: ${rupiah(zakat)}"
-                    else if (nisab > 0) "Belum mencapai nisab · kekurangan ${rupiah((nisab - netIncome).toLong())}"
-                    else "Indikator menunggu harga emas",
-                    color = if (reachesNisab) Green else Muted,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
             }
+            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Data kepemilikan emas", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    OutlinedTextField(
+                        value = goldGramsText,
+                        onValueChange = { goldGramsText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Total emas yang dimiliki (gram)") },
+                        placeholder = { Text("Contoh: 100") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = haulComplete, onCheckedChange = { haulComplete = it })
+                        Column {
+                            Text("Sudah dimiliki selama 1 tahun (haul)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Centang bila masa kepemilikan satu tahun hijriah telah terpenuhi.", fontSize = 9.sp, color = Muted)
+                        }
+                    }
+                    OutlinedTextField(
+                        value = priceOverrideText,
+                        onValueChange = { priceOverrideText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Penyesuaian harga buyback (opsional)") },
+                        placeholder = { Text(if (officialBuyback > 0) officialBuyback.toLong().toString() else "Masukkan harga per gram") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        supportingText = { Text("Kosongkan untuk memakai harga buyback ANTAM otomatis.", fontSize = 9.sp) }
+                    )
+                    val status = when {
+                        buybackPerGram <= 0 -> "Harga buyback belum tersedia. Periksa koneksi atau masukkan harga referensi secara manual."
+                        ownedGrams <= 0 -> "Masukkan jumlah emas untuk memeriksa nisab."
+                        !meetsGoldNisab -> "Belum mencapai nisab. Kekurangan ${String.format(Locale("id", "ID"), "%.2f", (nisabGrams - ownedGrams).coerceAtLeast(0.0))} gram."
+                        !haulComplete -> "Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
+                        else -> "Memenuhi nisab dan haul. Estimasi zakat: ${rupiah(goldZakat)}."
+                    }
+                    val statusColor = if (goldEligible) Green else if (!meetsGoldNisab) Muted else Gold
+                    Surface(color = statusColor.copy(alpha = .10f), shape = RoundedCornerShape(14.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                when {
+                                    buybackPerGram <= 0 -> "MENUNGGU HARGA"
+                                    goldEligible -> "WAJIB ZAKAT"
+                                    meetsGoldNisab -> "NISAB TERCAPAI · CEK HAUL"
+                                    else -> "BELUM MENCAPAI NISAB"
+                                },
+                                color = statusColor, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp
+                            )
+                            Text(status, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            if (buybackPerGram > 0) {
+                                LinearProgressIndicator(
+                                    progress = { (ownedGrams / nisabGrams).toFloat().coerceIn(0f, 1f) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = statusColor
+                                )
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Nilai emas: ${rupiah(goldValue)}", fontSize = 9.sp, color = Muted)
+                                    Text("Kadar zakat: 2,5%", fontSize = 9.sp, color = Muted)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Text(
+                "Acuan: nisab emas 85 gram, haul satu tahun, dan kadar 2,5%. BAZNAS merujuk harga buyback ANTAM untuk nilai nisab. Perhiasan yang dipakai sehari-hari dapat memiliki ketentuan fikih berbeda; konfirmasikan ke lembaga zakat.",
+                color = Muted, fontSize = 9.sp
+            )
+        } else {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("STANDAR BAZNAS TAHUN 2026", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(rupiah(annualIncomeNisab), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Nisab penghasilan per tahun · Rp7.640.144 per bulan", color = Color.White.copy(.8f), fontSize = 10.sp)
+                }
+            }
+            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("Rekap pemasukan tahun $year", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(rupiah(annualIncome), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    LinearProgressIndicator(
+                        progress = { (annualIncome.toDouble() / annualIncomeNisab).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (incomeEligible) Green else Brand
+                    )
+                    Text(
+                        if (incomeEligible) "Mencapai nisab. Estimasi zakat penghasilan 2,5%: ${rupiah(incomeZakat)}"
+                        else "Belum mencapai nisab. Selisih menuju nisab: ${rupiah((annualIncomeNisab - annualIncome).coerceAtLeast(0L))}",
+                        color = if (incomeEligible) Green else Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Text("Angka nisab penghasilan mengikuti publikasi BAZNAS 2026. Pastikan metode penghitungan pendapatan bruto/bersih sesuai pedoman lembaga zakat yang Anda ikuti.", color = Muted, fontSize = 9.sp)
         }
-        Text(
-            market?.let { "Kurs referensi diperbarui: ${it.fxUpdatedAt.ifBlank { "tidak tersedia" }}. Feed emas: ${it.goldUpdatedAt.ifBlank { "waktu tidak tersedia" }}. Harga diperbarui otomatis setiap 15 menit di aplikasi; feed kurs dari provider bersifat harian." }
-                ?: marketError,
-            fontSize = 9.sp, color = Muted
-        )
-        Text(
-            "Perhitungan ini adalah estimasi dengan nisab 250 g sesuai konfigurasi pengguna. Dasar zakat dan biaya yang boleh dikurangkan dapat berbeda menurut panduan lembaga zakat; verifikasi sebelum pembayaran.",
-            fontSize = 9.sp, color = Muted
-        )
     }
 }
 
@@ -994,120 +1087,163 @@ private fun parseLong(s:String)=s.replace(Regex("[^0-9]"),"").toLongOrNull()?:0L
 @Composable
 private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries: List<MoneyEntry>, business: String, cloudSession: CloudSession?) {
     var question by remember { mutableStateOf("") }
-    var conversation by remember { mutableStateOf(listOf("Halo! Saya Artha Assistant. Saya dapat menganalisis catatan keuangan $business yang tersedia di perangkat ini.")) }
-    var cloudConsent by remember { mutableStateOf(false) }
+    var conversation by remember { mutableStateOf(listOf("Artha AI sedang menyiapkan analisis online...")) }
     var cloudBusy by remember { mutableStateOf(false) }
+    var aiConnected by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(cloudSession?.userId) {
+        val session = cloudSession
+        if (session == null) {
+            conversation = listOf("Masuk ke akun Arthanesia untuk menggunakan analisis AI online.")
+            aiConnected = false
+        } else {
+            cloudBusy = true
+            conversation = listOf("Menganalisis ringkasan keuangan usaha $business melalui AI cloud...")
+            try {
+                val answer = SupabaseApi.askAssistant(
+                    session,
+                    "Lakukan analisis otomatis kondisi keuangan usaha saya untuk bulan berjalan. Berikan ringkasan kesehatan usaha, temuan utama, risiko dengan levelnya, peluang perbaikan, dan tiga tindakan prioritas."
+                )
+                conversation = listOf(answer)
+                aiConnected = true
+            } catch (e: Exception) {
+                conversation = listOf(e.message ?: "AI cloud belum dapat dihubungi. Periksa konfigurasi layanan AI dan koneksi internet.")
+                aiConnected = false
+            } finally {
+                cloudBusy = false
+            }
+        }
+    }
+
+    fun askCloud(questionText: String) {
+        val session = cloudSession ?: return
+        val prompt = questionText.trim()
+        if (prompt.isBlank() || cloudBusy) return
+        question = ""
+        conversation = conversation + prompt + "Artha AI sedang menganalisis data akun melalui layanan cloud..."
+        cloudBusy = true
+        scope.launch {
+            try {
+                val answer = SupabaseApi.askAssistant(session, prompt)
+                conversation = conversation.dropLast(1) + answer
+                aiConnected = true
+            } catch (e: Exception) {
+                conversation = conversation.dropLast(1) + (e.message ?: "AI online tidak tersedia. Silakan coba kembali.")
+                aiConnected = false
+            } finally {
+                cloudBusy = false
+            }
+        }
+    }
+
     ScreenColumn {
-        SectionTitle("Artha Assistant", "Analisis pembukuan lokal · offline")
+        SectionTitle("Artha AI", "Analisis otomatis berbasis cloud untuk $business")
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(38.dp).background(Brand.copy(.12f), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Artha AI · Gemini", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(
+                        when {
+                            cloudBusy -> "Sedang menghubungkan dan menganalisis..."
+                            aiConnected -> "Terhubung ke AI cloud"
+                            cloudSession == null -> "Login diperlukan"
+                            else -> "AI cloud belum tersambung"
+                        },
+                        fontSize = 9.sp, color = if (aiConnected) Green else Muted
+                    )
+                }
+                if (cloudBusy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Icon(if (aiConnected) Icons.Default.CloudDone else Icons.Default.CloudOff, null, tint = if (aiConnected) Green else Gold)
+            }
+        }
+        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 conversation.forEachIndexed { index, msg ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (index % 2 == 0) Arrangement.Start else Arrangement.End) {
-                        Surface(shape = RoundedCornerShape(14.dp), color = if (index % 2 == 0) MaterialTheme.colorScheme.surfaceVariant else Brand.copy(.12f)) {
-                            Text(msg, Modifier.widthIn(max = 290.dp).padding(12.dp), fontSize = 11.sp)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (index % 2 == 0) MaterialTheme.colorScheme.surfaceVariant else Brand.copy(.12f)
+                        ) {
+                            Text(msg, Modifier.widthIn(max = 310.dp).padding(12.dp), fontSize = 11.sp)
                         }
                     }
                 }
             }
         }
-        Text("Coba tanyakan", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        listOf("Bagaimana kondisi arus kas saya?", "Apa pengeluaran terbesar?", "Bagaimana cara menghemat biaya?", "Buat ringkasan pembukuan").forEach {
-            AssistChip(onClick = { question = it }, label = { Text(it, fontSize = 10.sp) }, leadingIcon = { Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(15.dp)) })
-        }
-        OutlinedTextField(question, { question = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Tulis pertanyaan...") })
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = cloudConsent,
-                onCheckedChange = { cloudConsent = it },
-                enabled = cloudSession != null && !cloudBusy
+        Text("Analisis cepat", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        listOf(
+            "Analisis kondisi arus kas dan risiko usaha saya.",
+            "Apa kategori pengeluaran terbesar dan bagaimana menguranginya?",
+            "Berikan tiga rekomendasi untuk meningkatkan margin usaha.",
+            "Buat ringkasan kinerja keuangan bulan ini."
+        ).forEach { suggestion ->
+            AssistChip(
+                onClick = { askCloud(suggestion) },
+                enabled = cloudSession != null && !cloudBusy,
+                label = { Text(suggestion, fontSize = 10.sp) },
+                leadingIcon = { Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(15.dp)) }
             )
-            Column {
-                Text("Izinkan analisis AI cloud", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Text(
-                    if (cloudSession == null) "Masuk ke akun untuk memakai AI cloud."
-                    else "Ringkasan transaksi agregat akan dikirim ke Gemini; deskripsi dan foto struk tidak dikirim.",
-                    fontSize = 9.sp, color = Muted
-                )
-            }
         }
-        Button(onClick = {
-            val q = question.trim()
-            if (q.isNotBlank()) {
-                question = ""
-                if (cloudConsent && cloudSession != null) {
-                    conversation = conversation + q + "Menganalisis ringkasan keuangan..."
-                    scope.launch {
-                        try {
-                            val answer = SupabaseApi.askAssistant(cloudSession, q, true)
-                            conversation = conversation.dropLast(1) + answer
-                        } catch (e: Exception) {
-                            conversation = conversation.dropLast(1) + (e.message ?: "AI cloud belum tersedia. Gunakan analisis lokal.")
-                        } finally {
-                            cloudBusy = false
-                        }
-                    }
-                    cloudBusy = true
-                } else {
-                val expenseByCategory = entries.filterNot { it.income }
-                    .groupBy { it.category }
-                    .mapValues { (_, rows) -> rows.sumOf { it.amount } }
-                    .toList().sortedByDescending { it.second }
-                val incomeByCategory = entries.filter { it.income }
-                    .groupBy { it.category }
-                    .mapValues { (_, rows) -> rows.sumOf { it.amount } }
-                    .toList().sortedByDescending { it.second }
-                val answer = when {
-                    q.contains("arus kas", true) || q.contains("cash flow", true) ->
-                        "Dari ${entries.size} transaksi yang tersedia, pemasukan ${rupiah(income)}, pengeluaran ${rupiah(expense)}, dan arus kas bersih ${rupiah(balance)}. ${if (balance >= 0) "Catatan menunjukkan arus kas positif." else "Catatan menunjukkan arus kas negatif; tinjau biaya yang bisa ditunda."}"
-                    q.contains("terbesar", true) || q.contains("kategori", true) ->
-                        expenseByCategory.firstOrNull()?.let { "Kategori pengeluaran tertinggi adalah ${it.first} sebesar ${rupiah(it.second)}. Periksa rincian transaksi dan bandingkan kebutuhan rutin sebelum menentukan pengurangan biaya." }
-                            ?: "Belum ada pengeluaran yang tercatat untuk dianalisis."
-                    q.contains("hemat", true) || q.contains("efisiensi", true) ->
-                        expenseByCategory.take(3).takeIf { it.isNotEmpty() }?.joinToString("; ") { "${it.first}: ${rupiah(it.second)}" }?.let { "Tiga pos pengeluaran tertinggi saat ini: $it. Mulailah dengan meninjau biaya berulang, negosiasi pemasok, dan pembelian yang belum mendesak. Ini adalah area evaluasi, bukan jaminan penghematan." }
-                            ?: "Tambahkan beberapa transaksi pengeluaran agar saya dapat menemukan kategori yang layak dievaluasi."
-                    q.contains("pemasukan", true) || q.contains("pendapatan", true) || q.contains("penjualan", true) ->
-                        incomeByCategory.take(3).takeIf { it.isNotEmpty() }?.joinToString("; ") { "${it.first}: ${rupiah(it.second)}" }?.let { "Pemasukan tercatat ${rupiah(income)}. Kontributor kategori teratas: $it." }
-                            ?: "Belum ada pemasukan yang tercatat."
-                    q.contains("margin", true) || q.contains("laba", true) || q.contains("profit", true) ->
-                        if (income > 0) "Saldo bersih ${rupiah(balance)} dengan margin sederhana ${((balance.toDouble() / income) * 100).toInt()}%. Rasio ini hanya memakai total transaksi yang tersedia dan belum tentu sama dengan laba akuntansi."
-                        else "Margin belum dapat dihitung karena belum ada pemasukan yang tercatat."
-                    q.contains("laporan", true) || q.contains("ringkasan", true) ->
-                        "Ringkasan: ${entries.size} transaksi, pemasukan ${rupiah(income)}, pengeluaran ${rupiah(expense)}, dan saldo bersih ${rupiah(balance)}. Buka Buku Transaksi untuk mencetak PDF atau mengekspor CSV."
-                    q.contains("saldo", true) ->
-                        "Saldo bersih dari catatan yang tersedia adalah ${rupiah(balance)}, dihitung dari pemasukan dikurangi pengeluaran."
-                    q.contains("pajak", true) ->
-                        "Estimasi pajak membutuhkan penghasilan bersih tahunan, status PTKP, pengurang yang memenuhi syarat, dan verifikasi aturan terbaru. Gunakan layar Pajak sebagai perkiraan awal, bukan pengganti pelaporan resmi."
-                    else ->
-                        "Saya bisa menganalisis arus kas, kategori pengeluaran, efisiensi, pemasukan, margin sederhana, laporan, dan dasar perhitungan pajak. Jawaban saat ini dihitung dari catatan di perangkat."
-                }
-                conversation = conversation + q + answer
-                }
-            }
-        }, enabled = !cloudBusy, modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = question,
+            onValueChange = { question = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Tanyakan sesuatu tentang usaha Anda") },
+            enabled = cloudSession != null && !cloudBusy,
+            minLines = 2
+        )
+        Button(
+            onClick = {
+                val prompt = question.ifBlank { "Perbarui analisis otomatis kondisi keuangan usaha saya." }
+                askCloud(prompt)
+            },
+            enabled = cloudSession != null && !cloudBusy,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             if (cloudBusy) CircularProgressIndicator(Modifier.size(17.dp), color = Color.White, strokeWidth = 2.dp)
-            else { Icon(Icons.Default.Send, null); Spacer(Modifier.width(7.dp)); Text(if (cloudConsent) "Tanya Artha AI cloud" else "Analisis lokal") }
+            else { Icon(Icons.Default.Send, null); Spacer(Modifier.width(7.dp)); Text("Analisis dengan AI online") }
         }
         Text(
-            if (cloudConsent) "Anda memberi persetujuan untuk mengirim agregat transaksi ke fungsi AI. Jika kunci Gemini belum dipasang, jawaban cloud akan memberi pesan status."
-            else "Mode lokal tidak mengirim data ke server.",
+            "Analisis dilakukan secara online. Yang dikirim ke layanan AI hanya ringkasan angka dan agregat kategori transaksi milik akun Anda; deskripsi transaksi dan foto struk tidak dikirim. Jika layanan AI belum dikonfigurasi, aplikasi menampilkan pesan kendala dan tidak mengganti jawaban dengan analisis lokal.",
             color = Muted, fontSize = 9.sp
         )
     }
 }
 
+private data class AchievementProgress(
+    val title: String,
+    val description: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val progress: Int,
+    val target: Int
+)
+
 @Composable
-private fun ProfileScreen(owner: String, business: String, currency: String, dark: Boolean,
-    onCurrency: (String) -> Unit, onTheme: () -> Unit, onLogout: () -> Unit) {
+private fun ProfileScreen(
+    owner: String,
+    business: String,
+    currency: String,
+    dark: Boolean,
+    entries: List<MoneyEntry>,
+    goals: List<SavingGoal>,
+    onCurrency: (String) -> Unit,
+    onTheme: () -> Unit,
+    onLogout: () -> Unit
+) {
     var menu by remember { mutableStateOf(false) }
     ScreenColumn {
-        SectionTitle("Profil & pengaturan", "Preferensi akun Arthanesia")
+        SectionTitle("Profil & pengaturan", "Preferensi dan progres akun Arthanesia")
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
             Row(Modifier.fillMaxWidth().padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
                 WalletLogo(52.dp); Spacer(Modifier.width(13.dp))
                 Column {
                     Text(owner, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text(business, color = Color.White.copy(.7f), fontSize = 10.sp)
+                    Text(business, color = Color.White.copy(.78f), fontSize = 10.sp)
                     Text("Pemilik usaha", color = Color.White.copy(.75f), fontSize = 9.sp)
                 }
             }
@@ -1121,32 +1257,108 @@ private fun ProfileScreen(owner: String, business: String, currency: String, dar
                         listOf("IDR", "USD", "EUR", "GBP", "JPY").forEach { DropdownMenuItem(text = { Text(it) }, onClick = { onCurrency(it); menu = false }) }
                     }
                 }
-                Text("Mata uang ini menjadi pilihan awal saat membuat transaksi. Setiap transaksi menyimpan nominal asli, kurs saat pencatatan, dan nilai konversi IDR agar histori tidak berubah saat kurs diperbarui.", color = Muted, fontSize = 10.sp)
+                Text("Setiap transaksi menyimpan nominal asli dan kurs saat pencatatan, agar histori tidak berubah saat kurs pasar diperbarui.", color = Muted, fontSize = 10.sp)
             }
         }
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.DarkMode, null, tint = Brand); Spacer(Modifier.width(10.dp))
-                Text("Mode gelap", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                Switch(checked = dark, onCheckedChange = { onTheme() })
+            Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.DarkMode, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Mode gelap", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text(if (dark) "Tampilan gelap aktif" else "Tampilan terang aktif", color = Muted, fontSize = 9.sp)
+                    }
+                    Switch(checked = dark, onCheckedChange = { onTheme() })
+                }
             }
         }
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(15.dp)) {
-                SectionTitle("Pencapaian bisnis", "Lencana demo")
-                ProfileBadge("Raja Penjualan", "Mencatat pemasukan usaha", Icons.Default.EmojiEvents)
-                ProfileBadge("Kolega AI", "Menggunakan Artha Assistant", Icons.Default.SmartToy)
-                ProfileBadge("Pejuang Hemat", "Mengelola pengeluaran", Icons.Default.Savings)
-            }
+        AchievementsPanel(entries, goals)
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Tutup ruang kerja")
         }
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Logout, null); Spacer(Modifier.width(8.dp)); Text("Tutup ruang kerja") }
     }
 }
+
 @Composable
-private fun ProfileBadge(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = Gold); Spacer(Modifier.width(10.dp))
-        Column { Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp); Text(subtitle, color = Muted, fontSize = 9.sp) }
+private fun AchievementsPanel(entries: List<MoneyEntry>, goals: List<SavingGoal>) {
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))
+    val today = java.time.LocalDate.now()
+    val recentDays = entries.mapNotNull { entry ->
+        runCatching { java.time.LocalDate.parse(entry.date, formatter) }.getOrNull()
+    }.filter { !it.isBefore(today.minusDays(6)) && !it.isAfter(today) }.distinct().size
+    val categories = entries.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct().size
+    val income = entries.filter { it.income }.sumOf { it.amount }
+    val expense = entries.filter { !it.income }.sumOf { it.amount }
+
+    val achievements = listOf(
+        AchievementProgress("Langkah Pertama", "Catat transaksi pertamamu", Icons.Default.ReceiptLong, entries.size.coerceAtMost(1), 1),
+        AchievementProgress("Pembukuan Konsisten", "Kumpulkan 10 catatan transaksi", Icons.Default.MenuBook, entries.size.coerceAtMost(10), 10),
+        AchievementProgress("Kenali Pola Usaha", "Gunakan 4 kategori transaksi", Icons.Default.Insights, categories.coerceAtMost(4), 4),
+        AchievementProgress("Punya Target", "Buat target keuangan pertama", Icons.Default.Flag, goals.size.coerceAtMost(1), 1),
+        AchievementProgress("Arus Kas Positif", "Jaga pemasukan di atas pengeluaran", Icons.Default.AccountBalanceWallet, if (entries.size >= 5 && income > expense) 1 else 0, 1),
+        AchievementProgress("Aktif Mingguan", "Catat transaksi pada 5 hari berbeda dalam 7 hari", Icons.Default.CalendarToday, recentDays.coerceAtMost(5), 5)
+    )
+    val unlocked = achievements.count { it.progress >= it.target }
+    val xp = (entries.size * 10 + goals.size * 30 + unlocked * 25).coerceAtLeast(0)
+    val level = xp / 250 + 1
+    val progressXp = xp % 250
+
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            SectionTitle("Pencapaian & pengalaman", "Progres dihitung dari aktivitas nyata akun Anda")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(52.dp).background(Brand.copy(.12f), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.EmojiEvents, null, tint = Gold, modifier = Modifier.size(27.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Level $level · Pengelola Usaha", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("$xp XP terkumpul · $unlocked dari ${achievements.size} badge terbuka", fontSize = 9.sp, color = Muted)
+                }
+                Text("$progressXp/250 XP", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+            LinearProgressIndicator(progress = { progressXp / 250f }, modifier = Modifier.fillMaxWidth())
+            achievements.forEach { achievement ->
+                val earned = achievement.progress >= achievement.target
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(39.dp).background(
+                            if (earned) Gold.copy(.14f) else MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            achievement.icon, null,
+                            tint = if (earned) Gold else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(achievement.title, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            Text(
+                                if (earned) "TERBUKA" else "${achievement.progress}/${achievement.target}",
+                                color = if (earned) Green else Muted,
+                                fontSize = 8.sp, fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                        Text(achievement.description, color = Muted, fontSize = 9.sp)
+                        if (!earned) {
+                            LinearProgressIndicator(
+                                progress = { (achievement.progress.toFloat() / achievement.target.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth().height(4.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            Text("XP bertambah saat Anda mencatat transaksi dan membuat target. Badge akan terbuka otomatis ketika syarat aktivitas terpenuhi.", color = Muted, fontSize = 9.sp)
+        }
     }
 }
 
