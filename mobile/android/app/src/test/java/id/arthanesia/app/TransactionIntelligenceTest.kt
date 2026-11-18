@@ -105,8 +105,7 @@ class TransactionIntelligenceTest {
     fun receiptUsesFirstAmountAfterTotalInsteadOfTrailingCardNumber() {
         val receipt = """
             TOKO MAKMUR
-            TOTAL BAYAR Rp 33.000
-            KARTU 12345678
+            TOTAL BAYAR Rp 33.000 KARTU 12345678
         """.trimIndent()
 
         val result = TransactionIntelligence.fromReceipt(receipt)
