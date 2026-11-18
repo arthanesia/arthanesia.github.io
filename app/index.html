@@ -212,16 +212,11 @@ $("transactionForm").addEventListener("submit",async e=>{
   const original=Number($("txAmount").value.replace(/,/g,"."));
   if(!(original>0))throw new Error("Nominal transaksi harus lebih dari nol.");
   const rate=rateToIdr(currency);if(!(rate>0))throw new Error("Kurs "+currency+" belum tersedia.");
-  let receiptPath=null;const file=$("txReceipt").files?.[0];
-  if(file){
-   const path=user.id+"/"+crypto.randomUUID()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-   const up=await sb.storage.from("receipts").upload(path,file,{upsert:false,contentType:file.type});
-   if(up.error)throw up.error;receiptPath=path;
-  }
   const date=$("txDate").value||new Date().toISOString().slice(0,10);
-  const row={user_id:user.id,client_ref:crypto.randomUUID(),type:$("txType").value,amount:original,currency,amount_base:Math.round(original*rate),base_currency:"IDR",exchange_rate:rate,category:$("txCategory").value,description:$("txDescription").value.trim(),occurred_at:new Date(date+"T12:00:00+07:00").toISOString(),source:file?"receipt":"manual",receipt_url:receiptPath};
-  const {error}=await sb.from("transactions").insert(row);if(error)throw error;
-  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();
+   const source=transactionSource==="receipt"?"receipt":transactionSource==="voice"?"voice":"manual";
+   const row={user_id:user.id,client_ref:crypto.randomUUID(),type:$("txType").value,amount:original,currency,amount_base:Math.round(original*rate),base_currency:"IDR",exchange_rate:rate,category:$("txCategory").value,description:$("txDescription").value.trim(),occurred_at:new Date(date+"T12:00:00+07:00").toISOString(),source,receipt_url:null};
+   const {error}=await sb.from("transactions").insert(row);if(error)throw error;
+  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();transactionSource="manual";hide("txSmartStatus");
   await loadTransactions();
  }catch(error){msg("txError",error.message||"Transaksi gagal disimpan.")}
  finally{button.disabled=false;button.textContent="Simpan transaksi";}
