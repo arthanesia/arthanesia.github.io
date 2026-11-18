@@ -902,6 +902,7 @@ private fun CashflowCandleChart(entries: List<MoneyEntry>) {
     }
     val minValue = minOf(0L, candles.minOfOrNull { it.second.second } ?: 0L)
     val maxValue = maxOf(1L, candles.maxOfOrNull { it.second.first } ?: 1L)
+    val chartGridColor = MaterialTheme.colorScheme.outlineVariant
     Canvas(Modifier.fillMaxWidth().height(155.dp)) {
         val top = 8f
         val bottom = size.height - 8f
@@ -911,7 +912,7 @@ private fun CashflowCandleChart(entries: List<MoneyEntry>) {
         val column = size.width / 7f
         val candleWidth = (column * .38f).coerceAtLeast(5f)
         if (minValue <= 0 && maxValue >= 0) {
-            drawLine(MaterialTheme.colorScheme.outlineVariant, Offset(0f, y(0)), Offset(size.width, y(0)), strokeWidth = 1f)
+            drawLine(chartGridColor, Offset(0f, y(0)), Offset(size.width, y(0)), strokeWidth = 1f)
         }
         candles.forEachIndexed { index, candle ->
             val x = column * (index + .5f)
