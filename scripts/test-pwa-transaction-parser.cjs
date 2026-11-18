@@ -6,6 +6,12 @@ const html = fs.readFileSync("app/index.html", "utf8");
 const inlineScripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 assert.ok(inlineScripts.length > 0, "PWA inline script must exist");
 
+assert.ok(html.includes('id="togglePassword"'), "web login password must be hidden with a visibility toggle");
+assert.ok(html.includes('resetPasswordForEmail'), "web login must expose password recovery");
+assert.ok(html.includes('PASSWORD_RECOVERY'), "web app must handle the password recovery callback");
+assert.ok(html.includes('identities.length===0'), "duplicate email sign-up must be recognized");
+assert.ok(!html.includes('id="aiConsent"'), "AI analysis must not require per-request consent checkbox");
+
 for (const [index, match] of inlineScripts.entries()) {
   new vm.Script(match[1], { filename: `app/index.html inline script ${index + 1}` });
 }
@@ -74,6 +80,30 @@ Tunai Rp 20.000
 Kembali Rp 3.350
 `);
 assert.equal(labelledReceipt.amount, 16650, "TOTAL BAYAR should win over subtotal, tax, cash and change");
+
+const splitLineReceipt = parseReceiptText(`
+TOKO MAKMUR
+Tepung Terigu 1 KG
+Rp 15.000
+Gula Pasir 1 KG
+Rp 18.000
+TOTAL BAYAR
+Rp 33.000
+`);
+assert.equal(splitLineReceipt.amount, 33000, "TOTAL BAYAR followed by amount on next line should parse");
+assert.match(splitLineReceipt.title, /Tepung Terigu/);
+assert.match(splitLineReceipt.title, /Gula Pasir/);
+
+const splitLineNoTotal = parseReceiptText(`
+TOKO MAKMUR
+Tepung Terigu 1 KG
+Rp 15.000
+Gula Pasir 1 KG
+Rp 18.000
+`);
+assert.equal(splitLineNoTotal.amount, null, "item prices on following lines must not be guessed as receipt total");
+assert.match(splitLineNoTotal.title, /Tepung Terigu/);
+assert.match(splitLineNoTotal.title, /Gula Pasir/);
 
 let goldZakat = calculateGoldZakat(85, 2272000, true);
 assert.equal(goldZakat.meetsNisab, true);

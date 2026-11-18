@@ -1,4 +1,4 @@
-const CACHE = "arthanesia-shell-v2";
+const CACHE = "arthanesia-shell-v3";
 const SHELL = ["/", "/app/", "/download/", "/admin/"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

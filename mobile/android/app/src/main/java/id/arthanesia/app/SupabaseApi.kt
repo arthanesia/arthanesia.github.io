@@ -28,7 +28,16 @@ internal data class MarketData(
     val antamRetailIdrPerGram: Double = 0.0,
     val antamRetailInclTaxIdrPerGram: Double = 0.0,
     val antamBuybackIdrPerGram: Double = 0.0,
-    val antamUpdatedAt: String = ""
+    val antamUpdatedAt: String = "",
+    val antamPriceDate: String = "",
+    val antamSourceUpdatedAt: String = "",
+    val antamStale: Boolean = true,
+    val pph22PurchaseFinalConsumer: Double = 0.0,
+    val pph22PurchaseMerchantWithNpwp: Double = 0.0025,
+    val pph22PurchaseMerchantWithoutNpwp: Double = 0.005,
+    val pph22BuybackThreshold: Long = 10_000_000L,
+    val pph22BuybackWithNpwp: Double = 0.015,
+    val pph22BuybackWithoutNpwp: Double = 0.03
 )
 
 internal data class CloudProfile(
@@ -167,8 +176,37 @@ internal object SupabaseApi {
             val result = request("POST", "/auth/v1/signup?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F", body.toString())
             if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Pendaftaran gagal."))
             val response = JSONObject(result.body)
+            val responseUser = response.optJSONObject("user")
+            val identities = responseUser?.optJSONArray("identities")
+            if (identities != null && identities.length() == 0) {
+                throw IllegalStateException("Email ini sudah terdaftar. Pilih Masuk atau gunakan Lupa password; jangan membuat akun kedua.")
+            }
             if (response.has("access_token") && !response.isNull("access_token")) sessionFrom(response) else null
         }
+
+    suspend fun recoverPassword(email: String) = withContext(Dispatchers.IO) {
+        val address = email.trim()
+        require(address.contains("@")) { "Masukkan alamat email yang valid terlebih dahulu." }
+        val body = JSONObject().put("email", address)
+        val result = request(
+            "POST",
+            "/auth/v1/recover?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F",
+            body.toString()
+        )
+        if (result.code !in 200..299) {
+            throw IllegalStateException(errorMessage(result.body, "Permintaan reset password gagal. Coba kembali beberapa saat lagi."))
+        }
+    }
+
+    suspend fun resendSignupConfirmation(email: String) = withContext(Dispatchers.IO) {
+        val address = email.trim()
+        require(address.contains("@")) { "Masukkan alamat email yang valid terlebih dahulu." }
+        val body = JSONObject().put("type", "signup").put("email", address)
+        val result = request("POST", "/auth/v1/resend", body.toString())
+        if (result.code !in 200..299) {
+            throw IllegalStateException(errorMessage(result.body, "Email verifikasi belum dapat dikirim ulang."))
+        }
+    }
 
     suspend fun refresh(session: CloudSession): CloudSession = withContext(Dispatchers.IO) {
         val body = JSONObject().put("refresh_token", session.refreshToken)
@@ -308,7 +346,16 @@ internal object SupabaseApi {
             antamRetailIdrPerGram = antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0)),
             antamRetailInclTaxIdrPerGram = antam.optDouble("retailInclTaxIdrPerGram", antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0))),
             antamBuybackIdrPerGram = antam.optDouble("buybackIdrPerGram", 0.0),
-            antamUpdatedAt = antam.optString("updatedAt", "")
+            antamUpdatedAt = antam.optString("updatedAt", ""),
+            antamPriceDate = antam.optString("priceDate", ""),
+            antamSourceUpdatedAt = antam.optString("sourceUpdatedAt", ""),
+            antamStale = antam.optBoolean("stale", true),
+            pph22PurchaseFinalConsumer = antam.optJSONObject("tax")?.optDouble("purchasePph22FinalConsumer", 0.0) ?: 0.0,
+            pph22PurchaseMerchantWithNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22MerchantWithNpwp", 0.0025) ?: 0.0025,
+            pph22PurchaseMerchantWithoutNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22MerchantWithoutNpwp", 0.005) ?: 0.005,
+            pph22BuybackThreshold = antam.optJSONObject("tax")?.optLong("buybackPph22ThresholdIdr", 10_000_000L) ?: 10_000_000L,
+            pph22BuybackWithNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithNpwp", 0.015) ?: 0.015,
+            pph22BuybackWithoutNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithoutNpwp", 0.03) ?: 0.03
         )
     }
 
@@ -329,6 +376,12 @@ internal object SupabaseApi {
 
     private fun errorMessage(raw: String, fallback: String): String = runCatching {
         val obj = JSONObject(raw)
-        obj.optString("msg").ifBlank { obj.optString("message").ifBlank { obj.optString("error_description").ifBlank { fallback } } }
+        obj.optString("msg").ifBlank {
+            obj.optString("message").ifBlank {
+                obj.optString("error_description").ifBlank {
+                    obj.optString("error").ifBlank { obj.optString("hint").ifBlank { fallback } }
+                }
+            }
+        }
     }.getOrDefault(fallback)
 }

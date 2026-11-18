@@ -17,10 +17,10 @@ Arthanesia is a financial-management product for Indonesian small businesses. Th
 
 The native Android application uses Kotlin + Jetpack Compose, SQLite for offline persistence, and Supabase Auth/REST for account sessions and transaction sync.
 
-Version: **0.7.0** (debug / early-access build).
+Version: **0.7.1** (debug / early-access build).
 
 Included:
-- Email/password signup and login.
+- Email/password signup and login; existing accounts can use previous passwords, and account recovery is available via a reset-email flow.
 - Session encryption using Android Keystore (AES-GCM).
 - Local transaction persistence with per-user partitioning on shared devices.
 - Offline-first transaction sync to Supabase.
@@ -86,7 +86,7 @@ Deployed Edge Functions:
 ## Remaining owner setup for full production operation
 
 1. **First admin account:** create/register the intended admin user through the web app or Android app, then provision `app_metadata.role = 'admin'` for that exact user from the Supabase SQL editor or trusted server-side administration. Never set roles in user-editable metadata. See `supabase/ADMIN-BOOTSTRAP.md`.
-2. **Gemini:** add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to Supabase Edge Function secrets. The cloud AI function is deployed but intentionally returns a configuration message until the key exists; local analysis continues to work.
+2. **Gemini:** add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to Supabase Edge Function secrets. The cloud AI function is deployed and does not use a local fallback. It returns a configuration message until `GEMINI_API_KEY` exists.
 3. **Auth URLs/email:** in Supabase Auth settings, allow `https://arthanesia.github.io/app/` as a redirect URL and verify that email confirmation mail delivery is configured.
 4. **Device QA:** test APK installation, account verification, network/offline sync, transaction deletion, print-to-PDF, OCR, and VoiceCash on actual Android devices before a public stable release.
 

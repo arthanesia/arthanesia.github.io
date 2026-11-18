@@ -43,6 +43,7 @@
 .xp-level{height:48px;width:48px;flex:none;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#c58b34,#f2d18a);color:#27384a;font-size:18px;font-weight:900}
 @media(max-width:600px){.achievement-grid{grid-template-columns:1fr}}
 
+.password-row{display:flex;gap:7px;align-items:stretch}.password-row input{min-width:0;flex:1}.password-toggle{flex:none;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--muted);font-size:10px;font-weight:800}:root[data-theme="dark"] .password-toggle{background:#142c42;color:#c9d8e7;border-color:var(--line)}#passwordRecovery{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 </style>\n</head>
 <body>
 <header class="top"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center"><a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="logo">A</span>Arthanesia <span class="muted" style="font-weight:500;font-size:12px">/ App</span></a><div class="topright"><button id="themeToggle" class="btn" type="button" aria-label="Ganti tema">☾</button><span id="accountEmail" class="small muted"></span><button id="signOut" class="btn hidden">Keluar</button></div></div></header>
@@ -58,9 +59,15 @@
 <div class="field"><label>Nama usaha</label><input id="businessName"></div>
 </div>
 <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" required></div>
-<div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" minlength="8" required></div>
+<div class="field"><label>Password</label><div class="password-row"><input id="password" type="password" autocomplete="current-password" required><button id="togglePassword" class="password-toggle" type="button" aria-label="Tampilkan password">Tampilkan</button></div></div>
 <button id="authSubmit" class="btn primary" style="width:100%;margin-top:8px" type="submit">Masuk</button>
 </form>
+<button id="forgotPassword" class="btn" type="button" style="width:100%;margin-top:8px">Lupa password?</button>
+<section id="passwordRecovery" class="hidden">
+ <p class="small muted">Buat password baru untuk akun Arthanesia.</p>
+ <div class="field"><label>Password baru (minimal 8 karakter)</label><div class="password-row"><input id="newPassword" type="password" autocomplete="new-password" minlength="8"><button id="toggleNewPassword" class="password-toggle" type="button">Tampilkan</button></div></div>
+ <button id="saveNewPassword" class="btn primary" type="button" style="width:100%">Simpan password baru</button>
+</section>
 <div id="authMessage" class="autherror hidden"></div>
 <button id="switchAuth" class="btn" style="width:100%;margin-top:11px">Belum punya akun? Daftar</button>
 <p class="small muted" style="margin-top:15px">Akun baru mungkin perlu verifikasi email sebelum bisa masuk. Data transaksi dipisahkan per pengguna melalui Row Level Security.</p>
@@ -169,17 +176,18 @@ async function loadMarket(){
   if(!r.ok)throw new Error("Feed pasar belum tersedia (HTTP "+r.status+").");
   market=await r.json();
   const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
-  $("marketFreshness").textContent="Data pasar · "+(antam.priceDate||antam.updatedAt||market.serverTime||"waktu tidak tersedia");
+  $("marketFreshness").textContent=(antam.stale?"Data ANTAM usang · ":"Data ANTAM · ")+(antam.priceDate||antam.updatedAt||market.serverTime||"waktu tidak tersedia");
   $("marketCards").innerHTML=[
-   ["ANTAM · Ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga jual ritel"+(antam.retailInclTaxIdrPerGram?" · termasuk pajak yang tercantum":"")],
+   ["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga untuk konsumen akhir · PPh 22 tidak dipungut"],
    ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali per gram"],
    ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global · bukan harga retail"]
   ].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
-  $("marketSourceNote").textContent="Sumber ANTAM Logam Mulia · harga ritel diperbarui harian, bukan tick-by-tick. Nisab emas memakai harga buyback. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
+  $("marketSourceNote").textContent="Sumber Logam Mulia ANTAM melalui feed harga harian. "+(antam.stale?"PERINGATAN: data lebih dari 36 jam. ":"")+
+   "Konsumen akhir tidak dipungut PPh 22 atas pembelian emas; tarif umum pelaku usaha 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: PPh 22 1,5% (NPWP) / 3% (tanpa NPWP). Perhitungan zakat memakai buyback bruto. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
   $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";
   $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
   $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal harga tidak tersedia");
-  $("goldZakatStatus").textContent=buyback?"Harga buyback ANTAM tersedia. Masukkan gram dan status haul.":"Harga buyback otomatis belum tersedia. Masukkan harga buyback manual dari sumber tepercaya.";
+  $("goldZakatStatus").textContent=buyback?(antam.stale?"Harga buyback tersedia, tetapi data telah berusia lebih dari 36 jam. Periksa tanggal sebelum menghitung.":"Harga buyback ANTAM tersedia. Masukkan gram dan status haul."):"Harga buyback otomatis belum tersedia. Masukkan harga buyback manual dari sumber tepercaya.";
   refreshFxLabel();refreshMarketTools();renderZakat();
  }catch(e){
   $("marketFreshness").textContent="Harga pasar tidak tersedia";
@@ -195,12 +203,14 @@ function renderZakat(){
  const buyback=currentBuyback(),grams=Number(($("goldGrams")?.value||"0").replace(",", ".")),haul=!!$("goldHaul")?.checked,gold=calculateGoldZakat(grams,buyback,haul);
  $("goldNisabValue").textContent=buyback?money(gold.nisabValue):"—";
  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
+ const stale=!!market?.antam?.stale;
  const status=!buyback?"Harga buyback belum tersedia. Masukkan harga manual untuk menghitung nisab."
   :!(grams>0)?"Masukkan jumlah emas untuk memeriksa nisab."
   :!gold.meetsNisab?"Belum mencapai nisab. Kekurangan "+gold.shortageGrams.toFixed(2)+" gram."
   :!haul?"Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
   :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(gold.zakatAmount)+".";
- const el=$("goldZakatStatus");el.textContent=status;el.style.background=gold.eligible?"#e8f7f0":"var(--bg)";el.style.color=gold.eligible?"var(--green)":"var(--ink)";
+ const finalStatus=buyback&&stale?"PERINGATAN: harga buyback terakhir sudah lebih dari 36 jam. "+status:status;
+ const el=$("goldZakatStatus");el.textContent=finalStatus;el.style.background=gold.eligible&&!stale?"#e8f7f0":stale?"#fff5df":"var(--bg)";el.style.color=gold.eligible&&!stale?"var(--green)":"var(--ink)";
  const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
  const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
  const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
@@ -217,19 +227,40 @@ function parseMoneyText(text){const raw=String(text),scaled=[...raw.matchAll(/([
 function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),income=/\b(pemasukan|pendapatan|penjualan|menerima|terima|masuk)\b/.test(t)&&!/\b(pengeluaran|beli|membeli|pembelian|bayar|belanja|biaya)\b/.test(t),type=income?"income":"expense",amount=parseMoneyText(raw);let title=raw.replace(/\b(?:rp|rupiah|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(?:nol|kosong|se|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|belas|puluh|ratus|seratus|seribu|ribu|sejuta|juta|miliar|milyar)\b/ig," ").replace(/\b(?:pengeluaran|pemasukan|pendapatan|penjualan|catat|transaksi|sebesar|senilai|sejumlah|nominal|uang)\b/ig," ").replace(/\s+/g," ").trim().replace(/^[,.:;\-]+|[,.:;\-]+$/g,"");if(!title)title=income?"Pemasukan usaha":"Pengeluaran usaha";return {type,amount,title:title.charAt(0).toUpperCase()+title.slice(1),category:categoryFor(t,type)}}
 async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
 function parseReceiptText(rawText){
- const text=String(rawText||""),lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
- const amountFrom=line=>{const values=[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[^0-9]/g,""))).filter(n=>n>0&&Number.isFinite(n));return values.length?values[values.length-1]:null};
+ const text=String(rawText||"");
+ const lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
+ const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
+ const amountFrom=line=>{
+  const values=[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)]
+   .map(m=>Number(m[1].replace(/[^0-9]/g,"")))
+   .filter(n=>n>0&&Number.isFinite(n));
+  return values.length?values[values.length-1]:null;
+ };
  let best=null,bestPriority=0,bestIndex=-1;
  lines.forEach((line,index)=>{
   if(ignore.test(line))return;
   const priority=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i.test(line)?3:/\btotal\b|\btagihan\b/i.test(line)?2:0;
+  if(!priority)return;
   const amount=amountFrom(line);
-  if(priority&&amount&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=amount;bestPriority=priority;bestIndex=index}
+  const next=lines[index+1];
+  const nextAmount=next&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next)?amountFrom(next):null;
+  const value=amount||nextAmount;
+  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index}
  });
- const detail=lines.filter(x=>/[a-zA-Z]{3}/.test(x)&&!ignore.test(x)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(x));
- const itemLines=detail.filter(x=>/[0-9]/.test(x)).map(x=>x.replace(/\b(?:rp|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ").replace(/[|:]/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>=3).slice(0,8);
- const items=itemLines.length?itemLines:detail.slice(0,3);
+ const itemLines=lines.map((line,index)=>{
+  const isDescription=/[a-zA-Z]{3}/.test(line)&&!ignore.test(line)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(line);
+  if(!isDescription)return null;
+  const amountOnSameLine=/[0-9]/.test(line);
+  const next=lines[index+1];
+  const amountOnNextLine=!!next&&/[0-9]/.test(next)&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next);
+  if(!amountOnSameLine&&!amountOnNextLine)return null;
+  return line.replace(/\b(?:rp|idr)\b/ig," ")
+   .replace(/\b[0-9][0-9.,]*\b/g," ")
+   .replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ")
+   .replace(/[|:]/g," ").replace(/\s+/g," ").trim();
+ }).filter(x=>x&&x.length>=3).slice(0,8);
+ const fallback=lines.filter(x=>/[a-zA-Z]{5}/.test(x)&&!ignore.test(x)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(x)).slice(0,3);
+ const items=itemLines.length?itemLines:fallback;
  return {amount:best,title:(items.join(", ")||"Pembelian dari struk").slice(0,160),category:categoryFor(text),income:false};
 }
 function calculateGoldZakat(grams,buyback,haul){
@@ -304,23 +335,56 @@ async function enter(userData){
 }
 $("authForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!sb)return showAuth("Library autentikasi belum dapat dimuat. Coba muat ulang halaman.");
+ const email=$("email").value.trim(),password=$("password").value;
+ if(!email||!password)return msg("authMessage","Masukkan email dan password.");
+ if(signup&&password.length<8)return msg("authMessage","Password untuk akun baru minimal 8 karakter. Password akun lama tetap dapat digunakan untuk masuk.");
  const button=$("authSubmit");button.disabled=true;button.textContent="Memverifikasi...";
  hide("authMessage");
  try{
   let result;
   if(signup){
-   result=await sb.auth.signUp({email:$("email").value.trim(),password:$("password").value,options:{data:{full_name:$("fullName").value.trim(),business_name:$("businessName").value.trim()},emailRedirectTo:location.origin+"/app/"}});
+   result=await sb.auth.signUp({email,password,options:{data:{full_name:$("fullName").value.trim(),business_name:$("businessName").value.trim()},emailRedirectTo:location.origin+"/app/"}});
    if(result.error)throw result.error;
+   if(result.data.user&&Array.isArray(result.data.user.identities)&&result.data.user.identities.length===0){
+    msg("authMessage","Email ini sudah terdaftar. Pilih Masuk atau gunakan Lupa password; jangan membuat akun kedua.");
+    signup=false;$("authTitle").textContent="Masuk ke Arthanesia";$("authSubmit").textContent="Masuk";$("switchAuth").textContent="Belum punya akun? Daftar";$("signupFields").classList.add("hidden");
+    return;
+   }
    if(!result.data.session){msg("authMessage","Akun dibuat. Periksa email untuk verifikasi, lalu masuk.");return;}
   }else{
-   result=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+   result=await sb.auth.signInWithPassword({email,password});
    if(result.error)throw result.error;
   }
   await enter(result.data.user||result.data.session.user);
  }catch(error){msg("authMessage",error.message||"Autentikasi gagal.")}
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
-$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);});
+$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);$("password").autocomplete=signup?"new-password":"current-password";$("password").type="password";$("togglePassword").textContent="Tampilkan";});
+$("togglePassword").addEventListener("click",()=>{const input=$("password"),showing=input.type==="password";input.type=showing?"text":"password";$("togglePassword").textContent=showing?"Sembunyikan":"Tampilkan";$("togglePassword").setAttribute("aria-label",showing?"Sembunyikan password":"Tampilkan password");});
+$("toggleNewPassword").addEventListener("click",()=>{const input=$("newPassword"),showing=input.type==="password";input.type=showing?"text":"password";$("toggleNewPassword").textContent=showing?"Sembunyikan":"Tampilkan";});
+$("forgotPassword").addEventListener("click",async()=>{
+ const email=$("email").value.trim();if(!email.includes("@"))return msg("authMessage","Masukkan email akun terlebih dahulu.");
+ if(!sb)return;
+ const button=$("forgotPassword");button.disabled=true;button.textContent="Mengirim tautan...";
+ try{
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+"/app/"});
+  if(error)throw error;
+  msg("authMessage","Jika email terdaftar, tautan pemulihan password telah dikirim. Periksa kotak masuk dan spam.");
+ }catch(error){msg("authMessage",error.message||"Tautan reset belum dapat dikirim.")}
+ finally{button.disabled=false;button.textContent="Lupa password?";}
+});
+$("saveNewPassword").addEventListener("click",async()=>{
+ const password=$("newPassword").value;
+ if(password.length<8)return msg("authMessage","Password baru minimal 8 karakter.");
+ $("saveNewPassword").disabled=true;$("saveNewPassword").textContent="Menyimpan...";
+ try{
+  const {data,error}=await sb.auth.updateUser({password});
+  if(error)throw error;
+  $("passwordRecovery").classList.add("hidden");$("authForm").classList.remove("hidden");$("switchAuth").classList.remove("hidden");
+  await enter(data.user);
+ }catch(error){msg("authMessage",error.message||"Password baru gagal disimpan.")}
+ finally{$("saveNewPassword").disabled=false;$("saveNewPassword").textContent="Simpan password baru";}
+});
 $("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=null;rows=[];aiAutoRequested=false;showAuth("Anda sudah keluar.")});
 function applyTheme(theme){const selected=theme==="dark"?"dark":"light";document.documentElement.dataset.theme=selected;localStorage.setItem("arthanesia-theme",selected);$("themeToggle").textContent=selected==="dark"?"☀":"☾";$("themeToggle").setAttribute("aria-label",selected==="dark"?"Aktifkan tema terang":"Aktifkan tema gelap");}
 applyTheme(localStorage.getItem("arthanesia-theme")||"light");
@@ -378,7 +442,15 @@ async function runAiAnalysis(question){
  if($("aiStatus"))$("aiStatus").textContent="Mengirim ringkasan transaksi ke layanan AI cloud...";
  try{
   const {data,error}=await sb.functions.invoke("artha-assistant",{body:{question}});
-  if(error)throw error;if(data?.error)throw new Error(data.error);
+  if(error){
+   let detail=error.message||"AI online belum tersedia.";
+   const response=error.context;
+   if(response&&typeof response.clone==="function"){
+    try{const payload=await response.clone().json();detail=payload.error||payload.message||detail}catch(_){}
+   }
+   throw new Error(detail);
+  }
+  if(data?.error)throw new Error(data.error);
   addBubble(data.answer||"AI online belum memberikan jawaban.","ai");
   if($("aiStatus"))$("aiStatus").textContent="Terhubung · "+(data.provider||"AI cloud")+" · "+(data.transactionCount??rows.length)+" transaksi dianalisis";
  }catch(error){
@@ -392,7 +464,11 @@ $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 loadMarket();setInterval(loadMarket,30000);
 sb?.auth.getSession().then(({data})=>{if(data.session)enter(data.session.user);});
-sb?.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_IN"&&session&&!user)enter(session.user);});
+sb?.auth.onAuthStateChange((event,session)=>{
+ if(event==="PASSWORD_RECOVERY"&&session){
+  hide("appView");show("authView");$("authForm").classList.add("hidden");$("forgotPassword").classList.add("hidden");$("switchAuth").classList.add("hidden");$("passwordRecovery").classList.remove("hidden");$("authTitle").textContent="Buat password baru";$("authMessage").classList.add("hidden");
+ }else if(event==="SIGNED_IN"&&session&&!user)enter(session.user);
+});
 })();
 </script>
 </body></html>
