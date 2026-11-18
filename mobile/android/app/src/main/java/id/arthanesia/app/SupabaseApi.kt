@@ -118,6 +118,7 @@ internal class SecureSessionStore(context: Context) {
 
 internal object SupabaseApi {
     private const val BASE_URL = "https://ixihqkifpmxruvjyfnrk.supabase.co"
+    private const val AUTH_REDIRECT_URL_ENCODED = "https%3A%2F%2Farthanesia.github.io%2Fapp%2F"
     private const val PUBLIC_KEY = "sb_publishable_-kbqcW7De6AgeVLgBkTaPg_iD1EicRt"
 
     private data class HttpResult(val code: Int, val body: String)
@@ -131,6 +132,7 @@ internal object SupabaseApi {
     ): HttpResult {
         val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
+            useCaches = false
             connectTimeout = 12000
             readTimeout = 18000
             setRequestProperty("apikey", PUBLIC_KEY)
@@ -173,7 +175,7 @@ internal object SupabaseApi {
         withContext(Dispatchers.IO) {
             val metadata = JSONObject().put("full_name", name.trim()).put("business_name", business.trim())
             val body = JSONObject().put("email", email.trim()).put("password", password).put("data", metadata)
-            val result = request("POST", "/auth/v1/signup?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F", body.toString())
+            val result = request("POST", "/auth/v1/signup?redirect_to=" + AUTH_REDIRECT_URL_ENCODED, body.toString())
             if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Pendaftaran gagal."))
             val response = JSONObject(result.body)
             val responseUser = response.optJSONObject("user")
@@ -190,7 +192,7 @@ internal object SupabaseApi {
         val body = JSONObject().put("email", address)
         val result = request(
             "POST",
-            "/auth/v1/recover?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F",
+            "/auth/v1/recover?redirect_to=" + AUTH_REDIRECT_URL_ENCODED,
             body.toString()
         )
         if (result.code !in 200..299) {
@@ -202,7 +204,7 @@ internal object SupabaseApi {
         val address = email.trim()
         require(address.contains("@")) { "Masukkan alamat email yang valid terlebih dahulu." }
         val body = JSONObject().put("type", "signup").put("email", address)
-        val result = request("POST", "/auth/v1/resend", body.toString())
+        val result = request("POST", "/auth/v1/resend?redirect_to=" + AUTH_REDIRECT_URL_ENCODED, body.toString())
         if (result.code !in 200..299) {
             throw IllegalStateException(errorMessage(result.body, "Email verifikasi belum dapat dikirim ulang."))
         }
@@ -330,7 +332,7 @@ internal object SupabaseApi {
     }
 
     suspend fun fetchMarketData(): MarketData = withContext(Dispatchers.IO) {
-        val response = request("GET", "/functions/v1/market-data")
+        val response = request("GET", "/functions/v1/market-data?refresh=" + System.currentTimeMillis())
         if (response.code !in 200..299) throw IllegalStateException(errorMessage(response.body, "Harga pasar tidak tersedia."))
         val obj = JSONObject(response.body)
         val ratesJson = obj.getJSONObject("rates")

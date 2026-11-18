@@ -398,10 +398,16 @@ private fun ArthanesiaApp() {
         }
     }
 
+    LaunchedEffect(page) {
+        if (page == Page.HOME || page == Page.TRANSACTIONS || page == Page.ZAKAT) {
+            runCatching { SupabaseApi.fetchMarketData() }.onSuccess { fxMarketData = it }
+        }
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
+            delay(5 * 60 * 1000L)
             runCatching { SupabaseApi.fetchMarketData() }.onSuccess { fxMarketData = it }
-            delay(15 * 60 * 1000L)
         }
     }
 
@@ -1033,24 +1039,10 @@ internal object ZakatCalculator {
 @Composable
 private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     var mode by remember { mutableStateOf("emas") }
-    var goldGramsText by remember { mutableStateOf("") }
-    var haulComplete by remember { mutableStateOf(false) }
-    var priceOverrideText by remember { mutableStateOf("") }
-
-    val officialBuyback = market?.antamBuybackIdrPerGram ?: 0.0
-    val manualBuyback = parseCurrencyAmount(priceOverrideText)
-    val buybackPerGram = if (manualBuyback > 0) manualBuyback else officialBuyback
+    val buybackPerGram = market?.antamBuybackIdrPerGram?.takeIf { it > 0 } ?: 0.0
     val retailBasePerGram = market?.antamRetailIdrPerGram?.takeIf { it > 0 } ?: 0.0
-    val retailPerGram = market?.antamRetailInclTaxIdrPerGram?.takeIf { it > 0 }
-        ?: retailBasePerGram
-    val ownedGrams = goldGramsText.trim().replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
-    val goldResult = ZakatCalculator.evaluateGold(ownedGrams, buybackPerGram, haulComplete)
-    val nisabGrams = goldResult.nisabGrams
-    val nisabValue = goldResult.nisabValue
-    val meetsGoldNisab = goldResult.meetsNisab
-    val goldEligible = goldResult.eligible
-    val goldValue = goldResult.ownedValue
-    val goldZakat = goldResult.zakatAmount
+    val retailPerGram = market?.antamRetailInclTaxIdrPerGram?.takeIf { it > 0 } ?: retailBasePerGram
+    val nisabValue = if (buybackPerGram > 0) (85.0 * buybackPerGram).toLong() else 0L
 
     val today = java.time.LocalDate.now()
     val year = today.year
@@ -1078,7 +1070,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     }
 
     ScreenColumn {
-        SectionTitle("Kalkulator Zakat", "Perhitungan berdasarkan harga emas Indonesia dan ketentuan BAZNAS")
+        SectionTitle("Kalkulator Zakat", "Nisab emas dan zakat penghasilan")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = mode == "emas", onClick = { mode = "emas" }, label = { Text("Zakat emas") })
             FilterChip(selected = mode == "penghasilan", onClick = { mode = "penghasilan" }, label = { Text("Zakat penghasilan") })
@@ -1086,113 +1078,39 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
 
         if (mode == "emas") {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("REFERENSI HARGA ANTAM · INDONESIA", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .8.sp)
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("HARGA EMAS ANTAM", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .8.sp)
                     Text(
-                        if (retailPerGram > 0) "${rupiah(retailPerGram.toLong())} / gram"
-                        else "Harga ritel belum tersedia",
+                        if (retailPerGram > 0) "${rupiah(retailPerGram.toLong())} / gram" else "Harga ritel belum tersedia",
                         color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        if (retailBasePerGram > 0) "Harga ritel konsumen akhir · PPh 22 tidak dipungut"
-                        else "Harga jual ritel ANTAM 1 gram belum tersedia",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
-                    )
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Text(
-                        if (buybackPerGram > 0) "Buyback ANTAM: ${rupiah(buybackPerGram.toLong())} / gram"
-                        else "Harga buyback belum berhasil dimuat",
-                        color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                        if (buybackPerGram > 0) "Buyback: ${rupiah(buybackPerGram.toLong())} / gram" else "Harga buyback belum tersedia",
+                        color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
-                        if (nisabValue > 0) "Nilai nisab 85 gram: ${rupiah(nisabValue)}"
-                        else "Nilai nisab menunggu harga buyback",
+                        if (nisabValue > 0) "Nilai nisab 85 gram: ${rupiah(nisabValue)}" else "Nilai nisab menunggu harga",
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp
                     )
                     Text(
                         when {
-                            market == null -> "Sumber: menunggu feed ANTAM"
-                            market.antamStale -> "Peringatan: data harga ANTAM berusia lebih dari 36 jam · ${market.antamPriceDate}"
-                            else -> "Sumber: Logam Mulia ANTAM · ${market.antamSourceUpdatedAt.ifBlank { market.antamPriceDate }}"
+                            market == null -> "Harga ANTAM belum tersedia"
+                            market.antamStale -> "Periksa tanggal harga · ${market.antamPriceDate}"
+                            else -> "ANTAM · ${market.antamSourceUpdatedAt.ifBlank { market.antamPriceDate }}"
                         },
                         color = if (market?.antamStale == true) Gold else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 8.sp
+                        fontSize = 9.sp
                     )
-                    Text("Konsumen akhir tidak dipungut PPh 22 atas pembelian emas. Tarif umum pelaku usaha: 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: PPh 22 1,5% / 3%. Nisab zakat memakai buyback bruto.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
-                }
-            }
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Data kepemilikan emas", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = goldGramsText,
-                        onValueChange = { goldGramsText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Total emas yang dimiliki (gram)") },
-                        placeholder = { Text("Contoh: 100") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = haulComplete, onCheckedChange = { haulComplete = it })
-                        Column {
-                            Text("Sudah dimiliki selama 1 tahun (haul)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Centang bila masa kepemilikan satu tahun hijriah telah terpenuhi.", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    OutlinedTextField(
-                        value = priceOverrideText,
-                        onValueChange = { priceOverrideText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Penyesuaian harga buyback (opsional)") },
-                        placeholder = { Text(if (officialBuyback > 0) officialBuyback.toLong().toString() else "Masukkan harga per gram") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        supportingText = { Text("Kosongkan untuk memakai harga buyback ANTAM otomatis.", fontSize = 9.sp) }
-                    )
-                    val status = when {
-                        buybackPerGram <= 0 -> "Harga buyback belum tersedia. Periksa koneksi atau masukkan harga referensi secara manual."
-                        ownedGrams <= 0 -> "Masukkan jumlah emas untuk memeriksa nisab."
-                        !meetsGoldNisab -> "Belum mencapai nisab. Kekurangan ${String.format(Locale("id", "ID"), "%.2f", (nisabGrams - ownedGrams).coerceAtLeast(0.0))} gram."
-                        !haulComplete -> "Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
-                        else -> "Memenuhi nisab dan haul. Estimasi zakat: ${rupiah(goldZakat)}."
-                    }
-                    val statusColor = if (goldEligible) Green else if (!meetsGoldNisab) MaterialTheme.colorScheme.onSurfaceVariant else Gold
-                    Surface(color = statusColor.copy(alpha = .10f), shape = RoundedCornerShape(14.dp)) {
-                        Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                when {
-                                    buybackPerGram <= 0 -> "MENUNGGU HARGA"
-                                    goldEligible -> "WAJIB ZAKAT"
-                                    meetsGoldNisab -> "NISAB TERCAPAI · CEK HAUL"
-                                    else -> "BELUM MENCAPAI NISAB"
-                                },
-                                color = statusColor, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp
-                            )
-                            Text(status, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            if (buybackPerGram > 0) {
-                                LinearProgressIndicator(
-                                    progress = { (ownedGrams / nisabGrams).toFloat().coerceIn(0f, 1f) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = statusColor
-                                )
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Nilai emas: ${rupiah(goldValue)}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("Kadar zakat: 2,5%", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
-                    }
                 }
             }
             Text(
-                "Acuan: nisab emas 85 gram, haul satu tahun, dan kadar 2,5%. BAZNAS merujuk harga buyback ANTAM untuk nilai nisab. Perhiasan yang dipakai sehari-hari dapat memiliki ketentuan fikih berbeda; konfirmasikan ke lembaga zakat.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
+                "Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp
             )
         } else {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("STANDAR BAZNAS TAHUN 2026", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text("BAZNAS 2026", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text(rupiah(annualIncomeNisab), color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
                     Text("Nisab penghasilan per tahun · Rp7.640.144 per bulan", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
@@ -1225,7 +1143,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                     )
                 }
             }
-            Text("Angka nisab penghasilan mengikuti publikasi BAZNAS 2026. Pastikan metode penghitungan pendapatan bruto/bersih sesuai pedoman lembaga zakat yang Anda ikuti.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+            Text("Tarif zakat penghasilan: 2,5%.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
         }
     }
 }

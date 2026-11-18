@@ -9,18 +9,20 @@ const json = (body: unknown, status = 200) =>
     headers: {
       ...cors,
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=900",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
     },
   });
 
 async function fetchJson(url: string) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error("Market provider unavailable");
   return response.json();
 }
 
 async function fetchText(url: string) {
   const response = await fetch(url, {
+    cache: "no-store",
     signal: AbortSignal.timeout(12000),
     headers: { "Accept": "text/csv,text/plain,*/*" },
   });
@@ -128,7 +130,7 @@ Deno.serve(async (req: Request) => {
     fx: {
       source: "open.er-api.com",
       updatedAt: fx?.time_last_update_utc ?? null,
-      note: "Kurs referensi provider, mengikuti jadwal pembaruan provider dan bukan harga transaksi bank.",
+      note: "Kurs terbaru yang tersedia dari provider; bukan harga transaksi bank dan tidak diperbarui setiap detik.",
     },
     gold: {
       spotUsdPerOunce: goldUsdPerOunce || null,
