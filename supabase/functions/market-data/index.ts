@@ -140,7 +140,7 @@ Deno.serve(async (req: Request) => {
     },
     antam: {
       retailIdrPerGram: antam?.sell ?? null,
-      retailInclTaxIdrPerGram: antam ? Math.round(antam.sell * 1.0025) : null,
+      retailInclTaxIdrPerGram: antam?.sell ?? null,
       buybackIdrPerGram: antam?.buyback ?? null,
       source: antam ? "Logam Mulia ANTAM · mirrored daily feed" : null,
       sourceUrl: antamCsvUrl,
@@ -152,8 +152,9 @@ Deno.serve(async (req: Request) => {
       available: !!antam,
       priceUpdateSchedule: "Snapshot harian ANTAM; bukan tick-by-tick.",
       tax: {
-        purchasePph22WithNpwp: 0.0025,
-        purchasePph22WithoutNpwp: 0.005,
+        purchasePph22FinalConsumer: 0,
+        purchasePph22MerchantWithNpwp: 0.0025,
+        purchasePph22MerchantWithoutNpwp: 0.005,
         buybackPph22ThresholdIdr: 10000000,
         buybackPph22WithNpwp: 0.015,
         buybackPph22WithoutNpwp: 0.03,
