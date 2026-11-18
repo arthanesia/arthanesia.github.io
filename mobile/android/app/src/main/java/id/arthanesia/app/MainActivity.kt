@@ -497,19 +497,33 @@ private fun WalletLogo(size: androidx.compose.ui.unit.Dp) {
 @Composable
 private fun AppTopBar(page: Page, business: String, onTheme: () -> Unit, dark: Boolean) {
     TopAppBar(
-        title = { Column { Text(page.label, fontWeight = FontWeight.Bold, fontSize = 17.sp); Text(business, fontSize = 10.sp, color = Muted) } },
-        actions = {
-            IconButton(onClick = onTheme) { Icon(if (dark) Icons.Default.LightMode else Icons.Default.DarkMode, "Ganti tema") }
-            IconButton(onClick = {}) { Icon(Icons.Default.NotificationsNone, "Notifikasi") }
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(page.label, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = BrandDark)
+                Text(business, fontSize = 10.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        actions = {
+            IconButton(onClick = onTheme) {
+                Icon(if (dark) Icons.Default.LightMode else Icons.Default.DarkMode, "Ganti tema", tint = Brand)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+        windowInsets = WindowInsets.statusBars
     )
 }
 
 @Composable
 private fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 17.dp)
-        .padding(top = 15.dp, bottom = 18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+    Column(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 18.dp)
+            .padding(top = 17.dp, bottom = 20.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        content = content
+    )
 }
 
 @Composable
@@ -525,8 +539,8 @@ private fun SectionTitle(title: String, subtitle: String? = null, trailing: (@Co
 
 @Composable
 private fun MetricCard(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier = Modifier) {
-    Card(modifier, shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Card(modifier, shape = RoundedCornerShape(19.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
+        Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(title, fontSize = 10.sp, color = Muted, modifier = Modifier.weight(1f))
                 Icon(icon, null, tint = tint, modifier = Modifier.size(17.dp))
@@ -541,26 +555,40 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
     entries: List<MoneyEntry>, syncStatus: String, onAdd: (Boolean) -> Unit, onVoice: () -> Unit, onNavigate: (Page) -> Unit) {
     ScreenColumn {
         Column {
-            Text("HALO, $owner 👋", fontSize = 10.sp, color = Brand, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text("Ringkasan keuanganmu", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Pantau kondisi $business hari ini.", color = Muted, fontSize = 11.sp)
+            Text("BUSINESS OVERVIEW", fontSize = 9.sp, color = Brand, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.4.sp)
+            Text("Halo, $owner 👋", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
+            Text("Kelola arus kas $business dengan lebih terarah.", color = Muted, fontSize = 11.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CloudDone, null, tint = if (syncStatus.startsWith("Tersinkron")) Green else Gold, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
             Text(syncStatus, fontSize = 9.sp, color = Muted)
         }
         }
-        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
-            Column(Modifier.fillMaxWidth().padding(20.dp)) {
+        Box(
+            Modifier.fillMaxWidth().background(
+                Brush.linearGradient(listOf(Color(0xFF0070BA), Color(0xFF003087))),
+                RoundedCornerShape(23.dp)
+            )
+        ) {
+            Column(Modifier.fillMaxWidth().padding(21.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Total saldo kas", color = Color.White.copy(.75f), fontSize = 11.sp, modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(.8f))
+                    Text("SALDO BISNIS ANDA", color = Color.White.copy(.78f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp, modifier = Modifier.weight(1f))
+                    Box(Modifier.size(36.dp).background(Color.White.copy(.14f), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White)
+                    }
                 }
-                Text(rupiah(balance), fontSize = 27.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                Spacer(Modifier.height(17.dp))
-                Row {
-                    Column(Modifier.weight(1f)) { Text("PEMASUKAN", color = Color(0xFF9BE8CB), fontSize = 9.sp, fontWeight = FontWeight.Bold); Text(rupiah(income), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                    Column(Modifier.weight(1f)) { Text("PENGELUARAN", color = Color(0xFFFFB3C0), fontSize = 9.sp, fontWeight = FontWeight.Bold); Text(rupiah(expense), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                Spacer(Modifier.height(5.dp))
+                Text(rupiah(balance), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f).background(Color.White.copy(.12f), RoundedCornerShape(13.dp)).padding(11.dp)) {
+                        Text("PEMASUKAN", color = Color(0xFFC8F4E5), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
+                        Text(rupiah(income), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Column(Modifier.weight(1f).background(Color.White.copy(.12f), RoundedCornerShape(13.dp)).padding(11.dp)) {
+                        Text("PENGELUARAN", color = Color(0xFFFFD9DF), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
+                        Text(rupiah(expense), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
@@ -598,9 +626,11 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
 
 @Composable
 private fun QuickAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier, onClick: () -> Unit) {
-    Card(modifier.clickable(onClick = onClick), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 3.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+    Card(modifier.clickable(onClick = onClick), shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 13.dp, horizontal = 3.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Box(Modifier.size(36.dp).background(tint.copy(alpha = .11f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(19.dp))
+            }
             Text(label, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
@@ -615,19 +645,24 @@ private fun QuickTile(label: String, icon: androidx.compose.ui.graphics.vector.I
 }
 @Composable
 private fun InsightCard(title: String, body: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-            Icon(icon, null, tint = Gold)
-            Column { Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold); Text(body, fontSize = 10.sp, color = Muted, lineHeight = 16.sp) }
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
+        Row(Modifier.fillMaxWidth().padding(15.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Box(Modifier.size(36.dp).background(Color(0xFFFFF5E6), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = Gold, modifier = Modifier.size(18.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(body, fontSize = 10.sp, color = Muted, lineHeight = 16.sp)
+            }
         }
     }
 }
 
 @Composable
 private fun TransactionRow(entry: MoneyEntry, onDelete: (() -> Unit)? = null) {
-    Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(37.dp).background((if (entry.income) Green else Red).copy(.12f), RoundedCornerShape(11.dp)), contentAlignment = Alignment.Center) {
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
+        Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).background((if (entry.income) Green else Red).copy(.11f), RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
                 Icon(if (entry.income) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null, tint = if (entry.income) Green else Red)
             }
             Spacer(Modifier.width(10.dp))
