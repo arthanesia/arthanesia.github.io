@@ -69,4 +69,38 @@ class TransactionIntelligenceTest {
         assertEquals(250_000L, result.amount)
         assertEquals("Pendapatan Jasa", result.category)
     }
+
+    @Test
+    fun receiptDoesNotMistakeLargestProductPriceForGrandTotal() {
+        val receipt = """
+            TOKO MAKMUR
+            Tepung Terigu 1 KG 15.000
+            Gula Pasir 1 KG 18.000
+            Susu UHT 2 PCS 12.000
+            """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(null, result.amount)
+        assertTrue(result.title.contains("Tepung Terigu"))
+        assertTrue(result.title.contains("Gula Pasir"))
+    }
+
+    @Test
+    fun receiptPrefersGrandTotalAndIgnoresSubtotalAndTax() {
+        val receipt = """
+            TOKO MAKMUR
+            Tepung Terigu 1 KG 15.000
+            Subtotal Rp 15.000
+            PPN Rp 1.650
+            TOTAL BAYAR Rp 16.650
+            Tunai Rp 20.000
+            Kembali Rp 3.350
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(16_650L, result.amount)
+    }
+
 }
