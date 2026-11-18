@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   const url = Deno.env.get("SUPABASE_URL") ?? "";
-  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
   const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
   const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 
