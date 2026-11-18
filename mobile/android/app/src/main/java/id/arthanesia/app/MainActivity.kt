@@ -920,12 +920,13 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     val retailPerGram = market?.antamRetailInclTaxIdrPerGram?.takeIf { it > 0 }
         ?: market?.antamRetailIdrPerGram?.takeIf { it > 0 } ?: 0.0
     val ownedGrams = goldGramsText.trim().replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
-    val nisabGrams = 85.0
-    val nisabValue = (buybackPerGram * nisabGrams).toLong()
-    val meetsGoldNisab = ownedGrams >= nisabGrams
-    val goldEligible = buybackPerGram > 0 && meetsGoldNisab && haulComplete
-    val goldValue = (ownedGrams * buybackPerGram).toLong()
-    val goldZakat = if (goldEligible) (goldValue * 0.025).toLong() else 0L
+    val goldResult = ZakatCalculator.evaluateGold(ownedGrams, buybackPerGram, haulComplete)
+    val nisabGrams = goldResult.nisabGrams
+    val nisabValue = goldResult.nisabValue
+    val meetsGoldNisab = goldResult.meetsNisab
+    val goldEligible = goldResult.eligible
+    val goldValue = goldResult.ownedValue
+    val goldZakat = goldResult.zakatAmount
 
     val year = java.time.LocalDate.now().year
     val annualIncome = entries.filter { it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
