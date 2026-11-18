@@ -57,8 +57,7 @@ class TransactionIntelligenceTest {
         assertFalse(result.income)
         assertEquals(33_000L, result.amount)
         assertEquals("Bahan Baku", result.category)
-        assertTrue(result.title.contains("Tepung Terigu"))
-        assertTrue(result.title.contains("Gula Pasir"))
+        assertEquals("Belanja bahan baku", result.title)
     }
 
     @Test
@@ -82,8 +81,7 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt(receipt)
 
         assertEquals(null, result.amount)
-        assertTrue(result.title.contains("Tepung Terigu"))
-        assertTrue(result.title.contains("Gula Pasir"))
+        assertEquals("Belanja bahan baku", result.title)
     }
 
     @Test
@@ -101,6 +99,26 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt(receipt)
 
         assertEquals(16_650L, result.amount)
+    }
+
+    @Test
+    fun receiptUsesFirstAmountAfterTotalInsteadOfTrailingCardNumber() {
+        val receipt = """
+            TOKO MAKMUR
+            TOTAL BAYAR Rp 33.000
+            KARTU 12345678
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(33_000L, result.amount)
+        assertEquals("Transaksi dari struk", result.title)
+    }
+
+    @Test
+    fun receiptNormalizesOcrLetterOInsideTotal() {
+        val result = TransactionIntelligence.fromReceipt("TOTAL BAYAR Rp 33.OOO")
+        assertEquals(33_000L, result.amount)
     }
 
     @Test
@@ -181,8 +199,7 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt(receipt)
 
         assertEquals(33_000L, result.amount)
-        assertTrue(result.title.contains("Tepung Terigu"))
-        assertTrue(result.title.contains("Gula Pasir"))
+        assertEquals("Belanja bahan baku", result.title)
     }
 
     @Test
@@ -198,8 +215,7 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt(receipt)
 
         assertEquals(null, result.amount)
-        assertTrue(result.title.contains("Tepung Terigu"))
-        assertTrue(result.title.contains("Gula Pasir"))
+        assertEquals("Belanja bahan baku", result.title)
     }
 
 }
