@@ -907,7 +907,6 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
     }
 }
 
-@Composable
 internal data class GoldZakatResult(
     val ownedGrams: Double,
     val buybackPricePerGram: Double,
@@ -961,6 +960,7 @@ internal object ZakatCalculator {
     }
 }
 
+@Composable
 private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     var mode by remember { mutableStateOf("emas") }
     var goldGramsText by remember { mutableStateOf("") }
