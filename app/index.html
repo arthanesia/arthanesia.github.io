@@ -63,6 +63,7 @@
 <button id="authSubmit" class="btn primary" style="width:100%;margin-top:8px" type="submit">Masuk</button>
 </form>
 <button id="forgotPassword" class="btn" type="button" style="width:100%;margin-top:8px">Lupa password?</button>
+<button id="resendVerification" class="btn hidden" type="button" style="width:100%;margin-top:8px">Kirim ulang verifikasi email</button>
 <section id="passwordRecovery" class="hidden">
  <p class="small muted">Buat password baru untuk akun Arthanesia.</p>
  <div class="field"><label>Password baru (minimal 8 karakter)</label><div class="password-row"><input id="newPassword" type="password" autocomplete="new-password" minlength="8"><button id="toggleNewPassword" class="password-toggle" type="button">Tampilkan</button></div></div>
@@ -91,22 +92,16 @@
 <div class="market-grid" id="marketCards"></div>
 <div class="market-tools">
 <div><label>Konversi kurs</label><div class="converter"><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select><input id="marketAmount" inputmode="decimal" value="1"><strong id="marketResult">Rp0</strong></div></div>
-<div class="rates" id="marketSourceNote">Harga ritel dan buyback mengacu Logam Mulia ANTAM. Nisab memakai harga buyback sesuai acuan BAZNAS.</div>
+<div class="rates" id="marketSourceNote">Harga ANTAM dan kurs terbaru dari provider.</div>
 </div></section>
 <section class="section" id="zakatPanel">
 <div class="secthead"><h2>Kalkulator zakat</h2><span class="small muted">Nisab emas · 85 gram</span></div>
 <div class="market-grid">
-<div class="market-card"><div class="label">Nisab emas (nilai buyback)</div><div class="value" id="goldNisabValue">—</div><div class="fresh">85 gram · 2,5%</div></div>
-<div class="market-card"><div class="label">Harga buyback per gram</div><div class="value" id="goldBuybackValue">Belum tersedia</div><div class="fresh" id="goldPriceDate">ANTAM · harga harian</div></div>
-<div class="market-card"><div class="label">Harga jual ritel 1 gram</div><div class="value" id="goldRetailValue">Belum tersedia</div><div class="fresh">Termasuk pajak sesuai data provider</div></div>
+<div class="market-card"><div class="label">Nilai nisab emas · 85 gram</div><div class="value" id="goldNisabValue">—</div><div class="fresh">85 gram · 2,5%</div></div>
+<div class="market-card"><div class="label">Buyback ANTAM · per gram</div><div class="value" id="goldBuybackValue">Belum tersedia</div><div class="fresh" id="goldPriceDate">ANTAM · harga harian</div></div>
+<div class="market-card"><div class="label">Harga ritel ANTAM · 1 gram</div><div class="value" id="goldRetailValue">Belum tersedia</div><div class="fresh">Harga konsumen</div></div>
 </div>
-<div class="market-tools">
-<div><label>Jumlah emas yang dimiliki (gram)</label><input id="goldGrams" inputmode="decimal" placeholder="Contoh: 100"></div>
-<div><label>Penyesuaian buyback (opsional)</label><input id="goldBuybackManual" inputmode="decimal" placeholder="Gunakan harga ANTAM otomatis"></div>
-</div>
-<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input id="goldHaul" type="checkbox"> Kepemilikan sudah mencapai haul satu tahun</label>
-<div id="goldZakatStatus" class="smart-status" aria-live="polite">Masukkan jumlah emas dan status haul untuk memeriksa kewajiban zakat.</div>
-<p class="small muted">Acuan BAZNAS: kepemilikan emas mencapai 85 gram, haul satu tahun, kadar 2,5%. Untuk nilai nisab, BAZNAS merujuk harga buyback ANTAM. Harga ritel dan buyback berbeda; pajak transaksi dapat berubah sesuai status NPWP dan nilai transaksi.</p>
+<div id="goldZakatStatus" class="rates" aria-live="polite">Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.</div>
 <div style="margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:12px">
 <div class="secthead"><h2 style="margin:0">Zakat penghasilan · 2026</h2></div>
 <div class="market-grid">
@@ -121,9 +116,9 @@
 <div class="secthead"><h2>Catat transaksi</h2><span class="small muted">Manual · foto struk · suara</span></div>
 <div class="entry-tools no-print">
 <button id="voiceEntry" class="entry-tool" type="button">🎙 VoiceCash<span>Contoh: Pengeluaran 5.000 beli bahan baku</span></button>
-<label class="entry-tool" for="txReceipt">📷 Pindai foto struk<span>Ekstrak nominal dan kategori otomatis · foto diproses di perangkat</span></label>
+<label class="entry-tool" for="txReceipt">📷 Pindai foto struk<span>Ambil total pembayaran dan kategori.</span></label>
 </div>
-<p class="small muted">Voice browser bergantung pada dukungan browser; pada sebagian perangkat audio dikirim ke layanan pengenalan suara online.</p>
+<p class="small muted">Periksa hasil sebelum menyimpan.</p>
 <div id="txSmartStatus" class="smart-status hidden" aria-live="polite"></div>
 <form id="transactionForm" class="formgrid">
 <div class="field"><label>Jenis</label><select id="txType"><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></div>
@@ -132,23 +127,23 @@
 <div class="field"><label>Kategori</label><select id="txCategory"><option>Penjualan</option><option>Pendapatan Jasa</option><option>Bahan Baku</option><option>Operasional</option><option>Perlengkapan</option><option>Transportasi</option><option>Utilitas</option><option>Marketing</option><option>Gaji</option><option>Investasi</option><option>Lainnya</option></select></div>
 <div class="field full"><label>Deskripsi</label><input id="txDescription" required maxlength="120" placeholder="Contoh: Pembelian bahan baku"></div>
 <div class="field"><label>Tanggal transaksi</label><input id="txDate" type="date" required></div>
-<div class="field"><label>Foto struk</label><input id="txReceipt" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><span class="small muted">Tidak disimpan sebagai lampiran. Hasil OCR akan mengisi formulir untuk diperiksa.</span></div>
+<div class="field"><label>Foto struk</label><input id="txReceipt" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><span class="small muted">Periksa hasil pindai sebelum menyimpan.</span></div>
 <div class="full"><div id="txFxText" class="rates">Konversi kurs akan ditampilkan di sini.</div><div id="txError" class="notice hidden"></div></div>
 <div class="full"><button id="saveTx" class="btn primary" type="submit">Simpan transaksi</button></div>
 </form></section>
 <section class="section"><div class="secthead"><h2>Riwayat transaksi</h2><input id="searchTx" placeholder="Cari transaksi..." style="max-width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:9px"></div><div id="transactionRows" class="tablewrap"></div></section>
 </section>
 <section id="page-assistant" class="page hidden">
-<div class="heading"><div><h1>Artha AI</h1><p>Analisis ringkasan keuangan dari data akun ini.</p></div></div>
-<section class="section"><div id="aiStatus" class="smart-status">AI online akan menganalisis ringkasan keuangan saat halaman ini dibuka.</div><div id="aiMessages" class="chat"><div class="bubble ai">Artha AI akan memuat analisis awal secara otomatis saat Anda membuka halaman ini.</div></div>
+<div class="heading"><div><h1>Artha AI</h1><p>Analisis keuangan usaha.</p></div></div>
+<section class="section"><div id="aiStatus" class="smart-status">AI online akan menganalisis ringkasan keuangan saat halaman ini dibuka.</div><div id="aiMessages" class="chat"><div class="bubble ai">Analisis keuangan akan dimuat otomatis.</div></div>
 <div class="field"><label>Pertanyaan lanjutan</label><textarea id="aiQuestion" rows="3" placeholder="Apa pengeluaran terbesar saya bulan ini?"></textarea></div>
-<div id="aiError" class="notice hidden"></div><button id="askAi" class="btn primary no-print" style="margin-top:12px">Tanya Artha AI online</button><p class="small muted">Analisis dilakukan online menggunakan Gemini. Yang dikirim hanya ringkasan transaksi dan total kategori; deskripsi transaksi dan foto struk tidak dikirim. Jika layanan AI online belum dikonfigurasi, aplikasi akan menampilkan kendala dan tidak mengganti jawaban dengan analisis lokal.</p></section>
+<div id="aiError" class="notice hidden"></div><button id="askAi" class="btn primary no-print" style="margin-top:12px">Tanya Artha AI online</button><p class="small muted">AI menganalisis ringkasan angka. Foto struk dan deskripsi transaksi tidak dikirim.</p></section>
 </section>
 <section id="page-profile" class="page hidden">
 <div class="heading"><div><h1>Profil & preferensi</h1><p>Pengaturan ruang kerja akun.</p></div></div>
 <section class="section"><div class="field"><label>Nama pemilik</label><input id="profileName"></div><div class="field"><label>Nama usaha</label><input id="profileBusiness"></div><div class="field"><label>Mata uang default</label><select id="profileCurrency"><option>IDR</option><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select></div><button id="saveProfile" class="btn primary no-print">Simpan profil</button><div id="profileMessage" class="small muted" style="margin-top:10px"></div></section>
 <section class="section"><div class="secthead"><h2>Pengalaman & pencapaian</h2><span class="small muted">Progres aktivitas akun</span></div><div id="achievementPanel"></div></section>
-<section class="section"><div class="secthead"><h2>Privasi & AI online</h2></div><p class="small muted">Saat Anda meminta analisis, ringkasan angka transaksi dan total kategori dikirim ke layanan AI online (Gemini) melalui server Arthanesia. Deskripsi transaksi, foto struk, password, dan data rekening tidak dikirim.</p></section>
+<section class="section"><div class="secthead"><h2>Privasi & AI online</h2></div><p class="small muted">AI menerima ringkasan angka transaksi. Foto struk, password, dan data rekening tidak dikirim.</p></section>
 </section>
 </div>
 </div>
@@ -160,6 +155,7 @@
 <script>
 (() => {
 const URL="https://ixihqkifpmxruvjyfnrk.supabase.co";
+const AUTH_REDIRECT_URL="https://arthanesia.github.io/app/";
 const KEY="sb_publishable_-kbqcW7De6AgeVLgBkTaPg_iD1EicRt";
 const sb=window.supabase?.createClient(URL,KEY);
 const $=id=>document.getElementById(id);
@@ -167,56 +163,46 @@ let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="m
 const money=v=>"Rp"+Math.round(Number(v||0)).toLocaleString("id-ID");
 function show(el){$(el).classList.remove("hidden")}function hide(el){$(el).classList.add("hidden")}
 function msg(id,text){$(id).textContent=text;show(id)}
-function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
+function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if(name==="overview"&&user)loadMarket();if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
 function showAuth(text=""){show("authView");hide("appView");hide("signOut");if(text)msg("authMessage",text)}
+function formatMarketTime(value){
+ const date=new Date(value||"");
+ return Number.isNaN(date.getTime())?"":new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"}).format(date)+" WIB";
+}
 async function loadMarket(){
  try{
-  const r=await fetch(URL+"/functions/v1/market-data",{headers:{apikey:KEY}});
+  const r=await fetch(URL+"/functions/v1/market-data?refresh="+Date.now(),{headers:{apikey:KEY},cache:"no-store"});
   if(!r.ok)throw new Error("Feed pasar belum tersedia (HTTP "+r.status+").");
   market=await r.json();
   const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
-  $("marketFreshness").textContent=(antam.stale?"Data ANTAM usang · ":"Data ANTAM · ")+(antam.priceDate||antam.updatedAt||market.serverTime||"waktu tidak tersedia");
+  const fxUpdated=market.fx?.updatedAt||market.rateUpdatedAt||"";
+  $("marketFreshness").textContent="ANTAM "+(antam.priceDate||"—")+" · Kurs "+(formatMarketTime(fxUpdated)||"—");
   $("marketCards").innerHTML=[
-   ["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga untuk konsumen akhir · PPh 22 tidak dipungut"],
-   ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali per gram"],
-   ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global · bukan harga retail"]
+   ["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga konsumen"],
+   ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali"],
+   ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global"]
   ].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
-  $("marketSourceNote").textContent="Sumber Logam Mulia ANTAM melalui feed harga harian. "+(antam.stale?"PERINGATAN: data lebih dari 36 jam. ":"")+
-   "Konsumen akhir tidak dipungut PPh 22 atas pembelian emas; tarif umum pelaku usaha 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: PPh 22 1,5% (NPWP) / 3% (tanpa NPWP). Perhitungan zakat memakai buyback bruto. Kurs FX: "+(market.fx?.source||market.rateSource||"referensi provider")+".";
+  $("marketSourceNote").textContent="Emas: Logam Mulia ANTAM · Kurs: "+(market.fx?.source||market.rateSource||"provider")+" · Update kurs: "+(formatMarketTime(fxUpdated)||"belum tersedia")+".";
   $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";
   $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
-  $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal harga tidak tersedia");
-  $("goldZakatStatus").textContent=buyback?(antam.stale?"Harga buyback tersedia, tetapi data telah berusia lebih dari 36 jam. Periksa tanggal sebelum menghitung.":"Harga buyback ANTAM tersedia. Masukkan gram dan status haul."):"Harga buyback otomatis belum tersedia. Masukkan harga buyback manual dari sumber tepercaya.";
+  $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal belum tersedia");
+  $("goldZakatStatus").textContent=buyback?"Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.":"Harga buyback ANTAM belum tersedia.";
   refreshFxLabel();refreshMarketTools();renderZakat();
  }catch(e){
-  $("marketFreshness").textContent="Harga pasar tidak tersedia";
-  $("marketCards").innerHTML='<div class="market-card"><div class="label">ANTAM retail / buyback</div><div class="value">Feed belum tersedia</div><div class="fresh">Periksa koneksi atau isi harga buyback manual</div></div>';
-  $("goldZakatStatus").textContent=e.message||"Harga emas sementara tidak tersedia.";
+  $("marketFreshness").textContent=market?"Gagal memperbarui · data terakhir ditampilkan":"Harga pasar tidak tersedia";
+  if(!market)$("marketCards").innerHTML='<div class="market-card"><div class="label">Harga pasar</div><div class="value">Belum tersedia</div><div class="fresh">Periksa koneksi</div></div>';
+  $("goldZakatStatus").textContent=market?"Tidak dapat mengambil data baru. Data terakhir tetap digunakan.":(e.message||"Harga emas sementara tidak tersedia.");
   renderZakat();
  }
 }
 function rateToIdr(currency){if(currency==="IDR")return 1;const unitsPerIdr=Number(market?.rates?.[currency]||0);return unitsPerIdr>0?1/unitsPerIdr:0}
 function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";}
-function currentBuyback(){const raw=String($("goldBuybackManual")?.value||"").trim(),manual=Number(raw.replace(/\./g,"").replace(",",".").replace(/[^0-9.]/g,""));return manual>0?manual:Number(market?.antam?.buybackIdrPerGram||0)}
 function renderZakat(){
- const buyback=currentBuyback(),grams=Number(($("goldGrams")?.value||"0").replace(",", ".")),haul=!!$("goldHaul")?.checked,gold=calculateGoldZakat(grams,buyback,haul);
- $("goldNisabValue").textContent=buyback?money(gold.nisabValue):"—";
+ const buyback=Number(market?.antam?.buybackIdrPerGram||0);
+ $("goldNisabValue").textContent=buyback?money(buyback*85):"—";
  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
- const stale=!!market?.antam?.stale;
- const status=!buyback?"Harga buyback belum tersedia. Masukkan harga manual untuk menghitung nisab."
-  :!(grams>0)?"Masukkan jumlah emas untuk memeriksa nisab."
-  :!gold.meetsNisab?"Belum mencapai nisab. Kekurangan "+gold.shortageGrams.toFixed(2)+" gram."
-  :!haul?"Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
-  :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(gold.zakatAmount)+".";
- const finalStatus=buyback&&stale?"PERINGATAN: harga buyback terakhir sudah lebih dari 36 jam. "+status:status;
- const el=$("goldZakatStatus");el.textContent=finalStatus;el.style.background=gold.eligible&&!stale?"#e8f7f0":stale?"#fff5df":"var(--bg)";el.style.color=gold.eligible&&!stale?"var(--green)":"var(--ink)";
- const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
- const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
- const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
- const income=calculateIncomeZakat(monthIncome,yearIncome);
- $("incomeMonthValue").textContent=money(monthIncome);$("incomeYearValue").textContent=money(yearIncome);$("incomeZakatValue").textContent=money(income.zakatAmount);
- $("incomeZakatStatus").textContent=income.basis==="monthly"?"Nisab bulanan terpenuhi":income.basis==="annual"?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
+ $("goldZakatStatus").textContent=buyback?"Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.":"Harga buyback ANTAM belum tersedia.";
 }
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
 function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
@@ -227,48 +213,36 @@ function parseMoneyText(text){const raw=String(text),scaled=[...raw.matchAll(/([
 function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),income=/\b(pemasukan|pendapatan|penjualan|menerima|terima|masuk)\b/.test(t)&&!/\b(pengeluaran|beli|membeli|pembelian|bayar|belanja|biaya)\b/.test(t),type=income?"income":"expense",amount=parseMoneyText(raw);let title=raw.replace(/\b(?:rp|rupiah|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(?:nol|kosong|se|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|belas|puluh|ratus|seratus|seribu|ribu|sejuta|juta|miliar|milyar)\b/ig," ").replace(/\b(?:pengeluaran|pemasukan|pendapatan|penjualan|catat|transaksi|sebesar|senilai|sejumlah|nominal|uang)\b/ig," ").replace(/\s+/g," ").trim().replace(/^[,.:;\-]+|[,.:;\-]+$/g,"");if(!title)title=income?"Pemasukan usaha":"Pengeluaran usaha";return {type,amount,title:title.charAt(0).toUpperCase()+title.slice(1),category:categoryFor(t,type)}}
 async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
 function parseReceiptText(rawText){
- const text=String(rawText||"");
- const lines=text.split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http/i;
+ const lines=String(rawText||"").split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
+ const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http|total\s*(?:item|barang|produk|qty)/i;
+ const strongTotal=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i;
  const amountFrom=line=>{
-  const values=[...line.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)]
-   .map(m=>Number(m[1].replace(/[^0-9]/g,"")))
-   .filter(n=>n>0&&Number.isFinite(n));
-  return values.length?values[values.length-1]:null;
+  const match=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)].find(m=>m[1].replace(/[^0-9Oo]/g,"").length>=3);
+  if(!match)return null;
+  const value=Number(match[1].replace(/[Oo]/g,"0").replace(/[^0-9]/g,""));
+  return Number.isFinite(value)&&value>0?value:null;
+ };
+ const amountOnly=line=>{
+  const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[Oo]/g,"0").trim();
+  return /^[0-9][0-9.,\s]*$/.test(clean)&&clean.replace(/[^0-9]/g,"").length>=3;
  };
  let best=null,bestPriority=0,bestIndex=-1;
  lines.forEach((line,index)=>{
   if(ignore.test(line))return;
-  const priority=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i.test(line)?3:/\btotal\b|\btagihan\b/i.test(line)?2:0;
+  const label=strongTotal.exec(line);
+  const priority=label?3:(/\btotal\b|\btagihan\b/i.test(line)?2:0);
   if(!priority)return;
-  const amount=amountFrom(line);
-  const next=lines[index+1];
-  const nextAmount=next&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next)?amountFrom(next):null;
-  const value=amount||nextAmount;
-  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index}
+  const tail=label?line.slice(label.index+label[0].length):line;
+  const value=amountFrom(tail)||(lines[index+1]&&amountOnly(lines[index+1])?amountFrom(lines[index+1]):null);
+  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index;}
  });
- const itemLines=lines.map((line,index)=>{
-  const isDescription=/[a-zA-Z]{3}/.test(line)&&!ignore.test(line)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(line);
-  if(!isDescription)return null;
-  const amountOnSameLine=/[0-9]/.test(line);
-  const next=lines[index+1];
-  const amountOnNextLine=!!next&&/[0-9]/.test(next)&&next.replace(/[^0-9]/g,"").length>=3&&!/[a-zA-Z]{3}/.test(next)&&!ignore.test(next);
-  if(!amountOnSameLine&&!amountOnNextLine)return null;
-  return line.replace(/\b(?:rp|idr)\b/ig," ")
-   .replace(/\b[0-9][0-9.,]*\b/g," ")
-   .replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ")
-   .replace(/[|:]/g," ").replace(/\s+/g," ").trim();
- }).filter(x=>x&&x.length>=3).slice(0,8);
- const fallback=lines.filter(x=>/[a-zA-Z]{5}/.test(x)&&!ignore.test(x)&&!/(grand\s*total|\btotal\b|\bjumlah\b|\btagihan\b)/i.test(x)).slice(0,3);
- const items=itemLines.length?itemLines:fallback;
- return {amount:best,title:(items.join(", ")||"Pembelian dari struk").slice(0,160),category:categoryFor(text),income:false};
-}
-function calculateGoldZakat(grams,buyback,haul){
- const ownedGrams=Number.isFinite(Number(grams))?Math.max(0,Number(grams)):0;
- const price=Number.isFinite(Number(buyback))?Math.max(0,Number(buyback)):0;
- const nisabGrams=85,meetsNisab=ownedGrams>=nisabGrams&&price>0,eligible=meetsNisab&&!!haul;
- const ownedValue=Math.round(ownedGrams*price),nisabValue=Math.round(nisabGrams*price);
- return {ownedGrams,buybackPricePerGram:price,nisabGrams,ownedValue,nisabValue,meetsNisab,eligible,zakatAmount:eligible?Math.round(ownedValue*.025):0,shortageGrams:Math.max(0,nisabGrams-ownedGrams)};
+ const productLines=lines.filter((line,index)=>{
+  if(ignore.test(line)||strongTotal.test(line)||/\btotal\b|\btagihan\b/i.test(line)||!/\p{L}{3}/u.test(line))return false;
+  return !!amountFrom(line)||(!!lines[index+1]&&amountOnly(lines[index+1]));
+ });
+ const category=categoryFor(productLines.join(" ")||lines.filter(x=>!ignore.test(x)).join(" "),"expense");
+ const titles={"Bahan Baku":"Belanja bahan baku","Transportasi":"Biaya transportasi","Utilitas":"Biaya utilitas","Gaji":"Biaya gaji","Marketing":"Biaya pemasaran","Investasi":"Pembelian aset","Perlengkapan":"Pembelian perlengkapan","Operasional":"Biaya operasional"};
+ return {amount:best,title:titles[category]||"Transaksi dari struk",category,income:false};
 }
 function calculateIncomeZakat(monthIncome,yearIncome){
  const monthly=Math.max(0,Number(monthIncome)||0),annual=Math.max(0,Number(yearIncome)||0);
@@ -331,7 +305,7 @@ function tableMarkup(list,withDelete){
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 async function enter(userData){
  user=userData;showApp();
- try{await loadProfile();await loadTransactions();await loadMarket()}catch(e){showAuth(e.message||"Data akun gagal dimuat.")}
+ try{await loadProfile();await loadTransactions()}catch(e){showAuth(e.message||"Data akun gagal dimuat.")}
 }
 $("authForm").addEventListener("submit",async e=>{
  e.preventDefault();if(!sb)return showAuth("Library autentikasi belum dapat dimuat. Coba muat ulang halaman.");
@@ -343,14 +317,14 @@ $("authForm").addEventListener("submit",async e=>{
  try{
   let result;
   if(signup){
-   result=await sb.auth.signUp({email,password,options:{data:{full_name:$("fullName").value.trim(),business_name:$("businessName").value.trim()},emailRedirectTo:location.origin+"/app/"}});
+   result=await sb.auth.signUp({email,password,options:{data:{full_name:$("fullName").value.trim(),business_name:$("businessName").value.trim()},emailRedirectTo:AUTH_REDIRECT_URL}});
    if(result.error)throw result.error;
    if(result.data.user&&Array.isArray(result.data.user.identities)&&result.data.user.identities.length===0){
     msg("authMessage","Email ini sudah terdaftar. Pilih Masuk atau gunakan Lupa password; jangan membuat akun kedua.");
     signup=false;$("authTitle").textContent="Masuk ke Arthanesia";$("authSubmit").textContent="Masuk";$("switchAuth").textContent="Belum punya akun? Daftar";$("signupFields").classList.add("hidden");
     return;
    }
-   if(!result.data.session){msg("authMessage","Akun dibuat. Periksa email untuk verifikasi, lalu masuk.");return;}
+   if(!result.data.session){msg("authMessage","Akun dibuat. Periksa email untuk verifikasi.");show("resendVerification");return;}
   }else{
    result=await sb.auth.signInWithPassword({email,password});
    if(result.error)throw result.error;
@@ -359,15 +333,22 @@ $("authForm").addEventListener("submit",async e=>{
  }catch(error){msg("authMessage",error.message||"Autentikasi gagal.")}
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
-$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);$("password").autocomplete=signup?"new-password":"current-password";$("password").type="password";$("togglePassword").textContent="Tampilkan";});
+$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);hide("resendVerification");$("password").autocomplete=signup?"new-password":"current-password";$("password").type="password";$("togglePassword").textContent="Tampilkan";});
 $("togglePassword").addEventListener("click",()=>{const input=$("password"),showing=input.type==="password";input.type=showing?"text":"password";$("togglePassword").textContent=showing?"Sembunyikan":"Tampilkan";$("togglePassword").setAttribute("aria-label",showing?"Sembunyikan password":"Tampilkan password");});
 $("toggleNewPassword").addEventListener("click",()=>{const input=$("newPassword"),showing=input.type==="password";input.type=showing?"text":"password";$("toggleNewPassword").textContent=showing?"Sembunyikan":"Tampilkan";});
+$("resendVerification").addEventListener("click",async()=>{
+ const email=$("email").value.trim();if(!email.includes("@"))return msg("authMessage","Masukkan email akun terlebih dahulu.");
+ const button=$("resendVerification");button.disabled=true;button.textContent="Mengirim...";
+ try{const {error}=await sb.auth.resend({type:"signup",email,options:{emailRedirectTo:AUTH_REDIRECT_URL}});if(error)throw error;msg("authMessage","Tautan verifikasi dikirim ulang. Periksa email dan spam.");}
+ catch(error){msg("authMessage",error.message||"Verifikasi belum dapat dikirim ulang.")}
+ finally{button.disabled=false;button.textContent="Kirim ulang verifikasi email";}
+});
 $("forgotPassword").addEventListener("click",async()=>{
  const email=$("email").value.trim();if(!email.includes("@"))return msg("authMessage","Masukkan email akun terlebih dahulu.");
  if(!sb)return;
  const button=$("forgotPassword");button.disabled=true;button.textContent="Mengirim tautan...";
  try{
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+"/app/"});
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:AUTH_REDIRECT_URL});
   if(error)throw error;
   msg("authMessage","Jika email terdaftar, tautan pemulihan password telah dikirim. Periksa kotak masuk dan spam.");
  }catch(error){msg("authMessage",error.message||"Tautan reset belum dapat dikirim.")}
@@ -394,7 +375,7 @@ document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",(
 $("txCurrency").addEventListener("change",refreshFxLabel);
  $("txReceipt").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Struk gagal dibaca.",true)}});
  $("voiceEntry").addEventListener("click",startVoiceEntry);
-$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("goldGrams").addEventListener("input",renderZakat);$("goldBuybackManual").addEventListener("input",renderZakat);$("goldHaul").addEventListener("change",renderZakat);
+$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);
 $("searchTx").addEventListener("input",render);
 $("transactionRows").addEventListener("click",async e=>{
  const b=e.target.closest("[data-delete]");if(!b)return;
@@ -462,7 +443,8 @@ $("askAi").addEventListener("click",()=>{const question=$("aiQuestion").value.tr
 function addBubble(text,who){const div=document.createElement("div");div.className="bubble "+who;div.textContent=text;$("aiMessages").appendChild(div);div.scrollIntoView({block:"nearest"});}
 $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
-loadMarket();setInterval(loadMarket,30000);
+setInterval(()=>{if(user&&!document.hidden&&!$("page-overview").classList.contains("hidden"))loadMarket()},5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(user&&!document.hidden&&!$("page-overview").classList.contains("hidden"))loadMarket()});
 sb?.auth.getSession().then(({data})=>{if(data.session)enter(data.session.user);});
 sb?.auth.onAuthStateChange((event,session)=>{
  if(event==="PASSWORD_RECOVERY"&&session){
