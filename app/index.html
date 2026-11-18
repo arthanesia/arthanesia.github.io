@@ -192,21 +192,21 @@ function rateToIdr(currency){if(currency==="IDR")return 1;const r=Number(market?
 function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";}
 function currentBuyback(){const raw=String($("goldBuybackManual")?.value||"").trim(),manual=Number(raw.replace(/\./g,"").replace(",",".").replace(/[^0-9.]/g,""));return manual>0?manual:Number(market?.antam?.buybackIdrPerGram||0)}
 function renderZakat(){
- const buyback=currentBuyback(),grams=Number(($("goldGrams")?.value||"0").replace(",",".")),haul=!!$("goldHaul")?.checked,nisabValue=buyback*85,ownedValue=grams*buyback,meets=grams>=85&&buyback>0,eligible=meets&&haul;
- $("goldNisabValue").textContent=buyback?money(nisabValue):"—";
+ const buyback=currentBuyback(),grams=Number(($("goldGrams")?.value||"0").replace(",", ".")),haul=!!$("goldHaul")?.checked,gold=calculateGoldZakat(grams,buyback,haul);
+ $("goldNisabValue").textContent=buyback?money(gold.nisabValue):"—";
  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
  const status=!buyback?"Harga buyback belum tersedia. Masukkan harga manual untuk menghitung nisab."
   :!(grams>0)?"Masukkan jumlah emas untuk memeriksa nisab."
-  :!meets?"Belum mencapai nisab. Kekurangan "+Math.max(0,85-grams).toFixed(2)+" gram."
+  :!gold.meetsNisab?"Belum mencapai nisab. Kekurangan "+gold.shortageGrams.toFixed(2)+" gram."
   :!haul?"Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
-  :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(ownedValue*.025)+".";
- const el=$("goldZakatStatus");el.textContent=status;el.style.background=eligible?"#e8f7f0":"var(--bg)";el.style.color=eligible?"var(--green)":"var(--ink)";
+  :"Memenuhi nisab dan haul. Estimasi zakat 2,5%: "+money(gold.zakatAmount)+".";
+ const el=$("goldZakatStatus");el.textContent=status;el.style.background=gold.eligible?"#e8f7f0":"var(--bg)";el.style.color=gold.eligible?"var(--green)":"var(--ink)";
  const now=new Date(),year=now.getFullYear(),month=now.getMonth(),incomeRows=rows.filter(x=>x.type==="income");
  const monthIncome=incomeRows.filter(x=>{const d=new Date(x.occurred_at);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,x)=>s+Number(x.amount_base||0),0);
  const yearIncome=incomeRows.filter(x=>new Date(x.occurred_at).getFullYear()===year).reduce((s,x)=>s+Number(x.amount_base||0),0);
- const monthMet=monthIncome>=7640144,yearMet=yearIncome>=91681728,incomeZakat=monthMet?monthIncome*.025:yearMet?yearIncome*.025:0;
- $("incomeMonthValue").textContent=money(monthIncome);$("incomeYearValue").textContent=money(yearIncome);$("incomeZakatValue").textContent=money(incomeZakat);
- $("incomeZakatStatus").textContent=monthMet?"Nisab bulanan terpenuhi":yearMet?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
+ const income=calculateIncomeZakat(monthIncome,yearIncome);
+ $("incomeMonthValue").textContent=money(monthIncome);$("incomeYearValue").textContent=money(yearIncome);$("incomeZakatValue").textContent=money(income.zakatAmount);
+ $("incomeZakatStatus").textContent=income.basis==="monthly"?"Nisab bulanan terpenuhi":income.basis==="annual"?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
 }
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
 function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
@@ -231,6 +231,18 @@ function parseReceiptText(rawText){
  const itemLines=detail.filter(x=>/[0-9]/.test(x)).map(x=>x.replace(/\b(?:rp|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(kg|gr|gram|g|ml|liter|pcs|pc|pack|dus|btl|botol|qty)\b/ig," ").replace(/[|:]/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>=3).slice(0,8);
  const items=itemLines.length?itemLines:detail.slice(0,3);
  return {amount:best,title:(items.join(", ")||"Pembelian dari struk").slice(0,160),category:categoryFor(text),income:false};
+}
+function calculateGoldZakat(grams,buyback,haul){
+ const ownedGrams=Number.isFinite(Number(grams))?Math.max(0,Number(grams)):0;
+ const price=Number.isFinite(Number(buyback))?Math.max(0,Number(buyback)):0;
+ const nisabGrams=85,meetsNisab=ownedGrams>=nisabGrams&&price>0,eligible=meetsNisab&&!!haul;
+ const ownedValue=Math.round(ownedGrams*price),nisabValue=Math.round(nisabGrams*price);
+ return {ownedGrams,buybackPricePerGram:price,nisabGrams,ownedValue,nisabValue,meetsNisab,eligible,zakatAmount:eligible?Math.round(ownedValue*.025):0,shortageGrams:Math.max(0,nisabGrams-ownedGrams)};
+}
+function calculateIncomeZakat(monthIncome,yearIncome){
+ const monthly=Math.max(0,Number(monthIncome)||0),annual=Math.max(0,Number(yearIncome)||0);
+ const monthlyEligible=monthly>=7640144,annualEligible=annual>=91681728;
+ return {monthlyIncome:monthly,annualIncome:annual,monthlyEligible,annualEligible,eligible:monthlyEligible||annualEligible,zakatAmount:Math.round(monthlyEligible?monthly*.025:annualEligible?annual*.025:0),basis:monthlyEligible?"monthly":annualEligible?"annual":null};
 }
 async function readReceipt(file){
  if(!file||!file.type.startsWith("image/"))throw new Error("Pilih foto struk JPG, PNG, atau WEBP.");
