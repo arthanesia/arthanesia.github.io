@@ -53,7 +53,6 @@ import kotlin.math.min
 
 private val Brand = Color(0xFF0070BA)
 private val BrandDark = Color(0xFF003087)
-private val Muted = Color(0xFF60758B)
 private val Green = Color(0xFF008A68)
 private val Red = Color(0xFFD9485F)
 private val Gold = Color(0xFFC58B34)
@@ -157,7 +156,7 @@ private fun ArthanesiaApp() {
         primary = Brand, secondary = Green, background = Color(0xFFF5F8FB),
         surface = Color.White, onBackground = Color(0xFF102A43),
         onSurface = Color(0xFF102A43), surfaceVariant = Color(0xFFEAF3FA),
-        onSurfaceVariant = Muted
+        onSurfaceVariant = if (dark) Color(0xFFB7C9D9) else Color(0xFF60758B)
     )
 
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -485,8 +484,8 @@ private fun LoginScreen(
             WalletLogo(if (compact) 72.dp else 88.dp)
             Spacer(Modifier.height(12.dp))
             Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-            Text("Keuangan usaha, lebih terarah", fontSize = 11.sp, color = Muted)
-            Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
+            Text("Keuangan usaha, lebih terarah", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(18.dp))
             Card(
                 Modifier.fillMaxWidth().widthIn(max = 440.dp),
@@ -496,7 +495,7 @@ private fun LoginScreen(
             ) {
                 Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                     Text(if (mode == "signin") "Masuk ke akun" else "Buat akun Arthanesia", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text("Gunakan akun pribadi untuk menyimpan data keuangan dan menyinkronkannya antarperangkat.", fontSize = 11.sp, color = Muted)
+                    Text("Gunakan akun pribadi untuk menyimpan data keuangan dan menyinkronkannya antarperangkat.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (mode == "signup") {
                         OutlinedTextField(name, { name = it }, label = { Text("Nama pemilik") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                         OutlinedTextField(business, { business = it }, label = { Text("Nama usaha") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -581,7 +580,7 @@ private fun AppTopBar(page: Page, business: String, onTheme: () -> Unit, dark: B
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(page.label, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface)
-                Text(business, fontSize = 10.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(business, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         },
         actions = {
@@ -612,7 +611,7 @@ private fun SectionTitle(title: String, subtitle: String? = null, trailing: (@Co
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            if (subtitle != null) Text(subtitle, fontSize = 10.sp, color = Muted)
+            if (subtitle != null) Text(subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         trailing?.invoke()
     }
@@ -623,7 +622,7 @@ private fun MetricCard(title: String, value: String, icon: androidx.compose.ui.g
     Card(modifier, shape = RoundedCornerShape(19.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(0.dp)) {
         Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, fontSize = 10.sp, color = Muted, modifier = Modifier.weight(1f))
+                Text(title, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                 Icon(icon, null, tint = tint, modifier = Modifier.size(17.dp))
             }
             Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -638,11 +637,11 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
         Column {
             Text("BUSINESS OVERVIEW", fontSize = 9.sp, color = Brand, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.4.sp)
             Text("Halo, $owner 👋", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-            Text("Kelola arus kas $business dengan lebih terarah.", color = Muted, fontSize = 11.sp)
+            Text("Kelola arus kas $business dengan lebih terarah.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CloudDone, null, tint = if (syncStatus.startsWith("Tersinkron")) Green else Gold, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
-            Text(syncStatus, fontSize = 9.sp, color = Muted)
+            Text(syncStatus, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         }
         Box(
@@ -688,7 +687,7 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text(if (score >= 80) "Aktivitas sehat" else if (score >= 60) "Terus berkembang" else "Mulai bangun kebiasaan", color = if (score >= 80) Green else MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text("Skor ini indikator penggunaan, bukan penilaian kredit.", fontSize = 9.sp, color = Muted)
+                        Text("Skor ini indikator penggunaan, bukan penilaian kredit.", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -737,7 +736,7 @@ private fun InsightCard(title: String, body: String, icon: androidx.compose.ui.g
             }
             Column(Modifier.weight(1f)) {
                 Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(body, fontSize = 10.sp, color = Muted, lineHeight = 16.sp)
+                Text(body, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
             }
         }
     }
@@ -753,7 +752,7 @@ private fun TransactionRow(entry: MoneyEntry, onDelete: (() -> Unit)? = null) {
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(entry.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${entry.category} · ${entry.date}", fontSize = 9.sp, color = Muted)
+                Text("${entry.category} · ${entry.date}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -796,7 +795,7 @@ private fun TransactionsScreen(
         val visibleExpense = filtered.filterNot { it.income }.sumOf { it.amount }
         Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("${filtered.size} transaksi · sesuai filter", color = Muted, fontSize = 10.sp)
+                Text("${filtered.size} transaksi · sesuai filter", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Column(Modifier.weight(1f)) {
                         Text("Pemasukan", color = Green, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
@@ -825,8 +824,8 @@ private fun TransactionsScreen(
             }
         }
         filtered.forEach { TransactionRow(it) }
-        if (filtered.isEmpty()) Text("Belum ada transaksi pada filter ini.", color = Muted)
-        Text("Laporan PDF memuat seluruh transaksi tersimpan. CSV dapat dibuka di Excel atau Google Sheets.", fontSize = 9.sp, color = Muted)
+        if (filtered.isEmpty()) Text("Belum ada transaksi pada filter ini.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Laporan PDF memuat seluruh transaksi tersimpan. CSV dapat dibuka di Excel atau Google Sheets.", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -912,7 +911,7 @@ private fun CashflowCandleChart(entries: List<MoneyEntry>) {
         val column = size.width / 7f
         val candleWidth = (column * .38f).coerceAtLeast(5f)
         if (minValue <= 0 && maxValue >= 0) {
-            drawLine(Muted.copy(alpha = .35f), Offset(0f, y(0)), Offset(size.width, y(0)), strokeWidth = 1f)
+            drawLine(MaterialTheme.colorScheme.outlineVariant, Offset(0f, y(0)), Offset(size.width, y(0)), strokeWidth = 1f)
         }
         candles.forEachIndexed { index, candle ->
             val x = column * (index + .5f)
@@ -934,7 +933,7 @@ private fun CashflowCandleChart(entries: List<MoneyEntry>) {
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         days.forEachIndexed { index, day ->
-            Text(if (index == 6) "Hari ini" else day.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")), fontSize = 8.sp, color = Muted)
+            Text(if (index == 6) "Hari ini" else day.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")), fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -967,10 +966,10 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
                     LinearProgressIndicator(progress = { pct.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(8.dp), color = Brand, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                     Spacer(Modifier.height(9.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Terkumpul ${rupiah(goal.current)}", fontSize = 10.sp, color = Muted)
+                        Text("Terkumpul ${rupiah(goal.current)}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Target ${rupiah(goal.target)}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Text("Target waktu: ${goal.due}", fontSize = 9.sp, color = Muted)
+                    Text("Target waktu: ${goal.due}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -1137,7 +1136,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                         Checkbox(checked = haulComplete, onCheckedChange = { haulComplete = it })
                         Column {
                             Text("Sudah dimiliki selama 1 tahun (haul)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Centang bila masa kepemilikan satu tahun hijriah telah terpenuhi.", fontSize = 9.sp, color = Muted)
+                            Text("Centang bila masa kepemilikan satu tahun hijriah telah terpenuhi.", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     OutlinedTextField(
@@ -1157,7 +1156,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                         !haulComplete -> "Nisab terpenuhi, tetapi haul satu tahun belum dikonfirmasi."
                         else -> "Memenuhi nisab dan haul. Estimasi zakat: ${rupiah(goldZakat)}."
                     }
-                    val statusColor = if (goldEligible) Green else if (!meetsGoldNisab) Muted else Gold
+                    val statusColor = if (goldEligible) Green else if (!meetsGoldNisab) MaterialTheme.colorScheme.onSurfaceVariant else Gold
                     Surface(color = statusColor.copy(alpha = .10f), shape = RoundedCornerShape(14.dp)) {
                         Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
@@ -1177,8 +1176,8 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                                     color = statusColor
                                 )
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Nilai emas: ${rupiah(goldValue)}", fontSize = 9.sp, color = Muted)
-                                    Text("Kadar zakat: 2,5%", fontSize = 9.sp, color = Muted)
+                                    Text("Nilai emas: ${rupiah(goldValue)}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Kadar zakat: 2,5%", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -1187,7 +1186,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
             }
             Text(
                 "Acuan: nisab emas 85 gram, haul satu tahun, dan kadar 2,5%. BAZNAS merujuk harga buyback ANTAM untuk nilai nisab. Perhiasan yang dipakai sehari-hari dapat memiliki ketentuan fikih berbeda; konfirmasikan ke lembaga zakat.",
-                color = Muted, fontSize = 9.sp
+                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
             )
         } else {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -1201,11 +1200,11 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text("Pemasukan bulan ini · ${today.month.getDisplayName(java.time.format.TextStyle.FULL, Locale("id", "ID"))}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     Text(rupiah(monthlyIncome), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text("Nisab bulanan: ${rupiah(monthlyIncomeNisab)}", fontSize = 9.sp, color = Muted)
+                    Text("Nisab bulanan: ${rupiah(monthlyIncomeNisab)}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Divider()
                     Text("Akumulasi pemasukan tahun $year", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     Text(rupiah(annualIncome), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("Nisab tahunan: ${rupiah(annualIncomeNisab)}", fontSize = 9.sp, color = Muted)
+                    Text("Nisab tahunan: ${rupiah(annualIncomeNisab)}", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     LinearProgressIndicator(
                         progress = {
                             val ratio = if (monthlyIncomeEligible) monthlyIncome.toDouble() / monthlyIncomeNisab
@@ -1221,11 +1220,11 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                             annualIncomeEligible -> "Nisab tahunan terpenuhi. Estimasi zakat tahunan (2,5%): ${rupiah(incomeZakat)}"
                             else -> "Belum mencapai nisab bulanan atau tahunan. Sisa menuju nisab bulanan: ${rupiah((monthlyIncomeNisab - monthlyIncome).coerceAtLeast(0L))}."
                         },
-                        color = if (incomeEligible) Green else Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                        color = if (incomeEligible) Green else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold
                     )
                 }
             }
-            Text("Angka nisab penghasilan mengikuti publikasi BAZNAS 2026. Pastikan metode penghitungan pendapatan bruto/bersih sesuai pedoman lembaga zakat yang Anda ikuti.", color = Muted, fontSize = 9.sp)
+            Text("Angka nisab penghasilan mengikuti publikasi BAZNAS 2026. Pastikan metode penghitungan pendapatan bruto/bersih sesuai pedoman lembaga zakat yang Anda ikuti.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
         }
     }
 }
@@ -1320,7 +1319,7 @@ private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries:
                             cloudSession == null -> "Login diperlukan"
                             else -> "AI cloud belum tersambung"
                         },
-                        fontSize = 9.sp, color = if (aiConnected) Green else Muted
+                        fontSize = 9.sp, color = if (aiConnected) Green else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (cloudBusy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -1376,7 +1375,7 @@ private fun AssistantScreen(balance: Long, income: Long, expense: Long, entries:
         }
         Text(
             "Analisis dilakukan secara online. Yang dikirim ke layanan AI hanya ringkasan angka dan agregat kategori transaksi milik akun Anda; deskripsi transaksi dan foto struk tidak dikirim. Jika layanan AI belum dikonfigurasi, aplikasi menampilkan pesan kendala dan tidak mengganti jawaban dengan analisis lokal.",
-            color = Muted, fontSize = 9.sp
+            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
         )
     }
 }
@@ -1423,7 +1422,7 @@ private fun ProfileScreen(
                         listOf("IDR", "USD", "EUR", "GBP", "JPY").forEach { DropdownMenuItem(text = { Text(it) }, onClick = { onCurrency(it); menu = false }) }
                     }
                 }
-                Text("Setiap transaksi menyimpan nominal asli dan kurs saat pencatatan, agar histori tidak berubah saat kurs pasar diperbarui.", color = Muted, fontSize = 10.sp)
+                Text("Setiap transaksi menyimpan nominal asli dan kurs saat pencatatan, agar histori tidak berubah saat kurs pasar diperbarui.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
             }
         }
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -1433,7 +1432,7 @@ private fun ProfileScreen(
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Mode gelap", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text(if (dark) "Tampilan gelap aktif" else "Tampilan terang aktif", color = Muted, fontSize = 9.sp)
+                        Text(if (dark) "Tampilan gelap aktif" else "Tampilan terang aktif", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
                     }
                     Switch(checked = dark, onCheckedChange = { onTheme() })
                 }
@@ -1480,7 +1479,7 @@ private fun AchievementsPanel(entries: List<MoneyEntry>, goals: List<SavingGoal>
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Level $level · Pengelola Usaha", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("$xp XP terkumpul · $unlocked dari ${achievements.size} badge terbuka", fontSize = 9.sp, color = Muted)
+                    Text("$xp XP terkumpul · $unlocked dari ${achievements.size} badge terbuka", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("$progressXp/250 XP", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
@@ -1507,11 +1506,11 @@ private fun AchievementsPanel(entries: List<MoneyEntry>, goals: List<SavingGoal>
                             Text(achievement.title, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.weight(1f))
                             Text(
                                 if (earned) "TERBUKA" else "${achievement.progress}/${achievement.target}",
-                                color = if (earned) Green else Muted,
+                                color = if (earned) Green else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 8.sp, fontWeight = FontWeight.ExtraBold
                             )
                         }
-                        Text(achievement.description, color = Muted, fontSize = 9.sp)
+                        Text(achievement.description, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
                         if (!earned) {
                             LinearProgressIndicator(
                                 progress = { (achievement.progress.toFloat() / achievement.target.coerceAtLeast(1)).coerceIn(0f, 1f) },
@@ -1523,7 +1522,7 @@ private fun AchievementsPanel(entries: List<MoneyEntry>, goals: List<SavingGoal>
                     }
                 }
             }
-            Text("XP bertambah saat Anda mencatat transaksi dan membuat target. Badge akan terbuka otomatis ketika syarat aktivitas terpenuhi.", color = Muted, fontSize = 9.sp)
+            Text("XP bertambah saat Anda mencatat transaksi dan membuat target. Badge akan terbuka otomatis ketika syarat aktivitas terpenuhi.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
         }
     }
 }
@@ -1549,19 +1548,19 @@ private fun EntryMethodDialog(onDismiss: () -> Unit, onManual: () -> Unit, onRec
         title = { Text("Catat transaksi", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Pilih cara tercepat. Arthanesia akan mengisi nominal, deskripsi, dan kategori sebagai saran untuk diperiksa.", color = Muted, fontSize = 11.sp)
+                Text("Pilih cara tercepat. Arthanesia akan mengisi nominal, deskripsi, dan kategori sebagai saran untuk diperiksa.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 FilledTonalButton(onClick = onReceipt, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.ReceiptLong, null); Spacer(Modifier.width(9.dp))
                     Column(horizontalAlignment = Alignment.Start) {
                         Text("Pindai foto struk", fontWeight = FontWeight.SemiBold)
-                        Text("Baca item, total, dan kategori · tanpa menyimpan foto", fontSize = 9.sp, color = Muted)
+                        Text("Baca item, total, dan kategori · tanpa menyimpan foto", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 FilledTonalButton(onClick = onVoice, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Mic, null); Spacer(Modifier.width(9.dp))
                     Column(horizontalAlignment = Alignment.Start) {
                         Text("VoiceCash", fontWeight = FontWeight.SemiBold)
-                        Text("Contoh: Pengeluaran 5.000 beli bahan baku", fontSize = 9.sp, color = Muted)
+                        Text("Contoh: Pengeluaran 5.000 beli bahan baku", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 OutlinedButton(onClick = onManual, modifier = Modifier.fillMaxWidth()) {
@@ -1632,7 +1631,7 @@ private fun TransactionDialog(
                     Text(
                         if (rateToIdr > 0) "Kurs referensi saat ini: 1 $selectedCurrency ≈ ${rupiah(rateToIdr.toLong())} · konversi disimpan saat transaksi dibuat"
                         else "Memuat kurs referensi. Transaksi mata uang asing belum dapat disimpan.",
-                        color = Muted, fontSize = 9.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
                     )
                 }
                 Box {
@@ -1719,14 +1718,14 @@ private fun TaxScreen(entries: List<MoneyEntry>) {
                 Text("Bruto tahunan tercatat",fontWeight=FontWeight.Bold)
                 Text(rupiah(annualGross),fontSize=20.sp,fontWeight=FontWeight.ExtraBold)
                 OutlinedTextField(deductions,{deductions=it},label={Text("Pengurang yang memenuhi syarat")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),singleLine=true)
-                Text("Penghasilan bersih = bruto − pengurang",fontSize=9.sp,color=Muted)
+                Text("Penghasilan bersih = bruto − pengurang",fontSize=9.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(rupiah(net),fontSize=18.sp,fontWeight=FontWeight.ExtraBold)
-                Text("PTKP default ${rupiah(ptkp)} · PKP ${rupiah(pkp)}",fontSize=9.sp,color=Muted)
+                Text("PTKP default ${rupiah(ptkp)} · PKP ${rupiah(pkp)}",fontSize=9.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Estimasi PPh tahunan ${rupiah(tax)}",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Brand)
             }
         }
-        Text("Arthanesia memakai penghasilan bersih tahunan sebagai dasar estimasi PKP setelah PTKP. Untuk PPh 21 karyawan, pemotongan bulanan memiliki mekanisme TER dan rekonsiliasi tahunan.",fontSize=10.sp,color=Muted)
-        Text("Transaksi tahun sebelumnya tidak dihapus; ketika tahun berganti, perhitungan periode aktif otomatis dimulai dari transaksi tahun baru.",fontSize=10.sp,color=Muted)
+        Text("Arthanesia memakai penghasilan bersih tahunan sebagai dasar estimasi PKP setelah PTKP. Untuk PPh 21 karyawan, pemotongan bulanan memiliki mekanisme TER dan rekonsiliasi tahunan.",fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Transaksi tahun sebelumnya tidak dihapus; ketika tahun berganti, perhitungan periode aktif otomatis dimulai dari transaksi tahun baru.",fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 private fun annualPph(pkp:Long):Long {
