@@ -124,10 +124,10 @@ class TransactionIntelligenceTest {
             haulComplete = true
         )
 
-        assertEquals(195_500_000L, result.ownedValue)
-        assertEquals(195_500_000L, result.zakatAmount * 40L)
+        assertEquals(230_000_000L, result.ownedValue)
+        assertEquals(230_000_000L, result.zakatAmount * 40L)
         assertTrue(result.eligible)
-        assertEquals(4_887_500L, result.zakatAmount)
+        assertEquals(5_750_000L, result.zakatAmount)
     }
 
     @Test
