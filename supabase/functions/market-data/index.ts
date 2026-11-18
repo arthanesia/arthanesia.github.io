@@ -1,6 +1,6 @@
 const cors = {
   "Access-Control-Allow-Origin": "https://arthanesia.github.io",
-  "Access-Control-Allow-Headers": "apikey, content-type",
+  "Access-Control-Allow-Headers": "apikey, content-type, authorization, x-client-info",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 const json = (body: unknown, status = 200) =>
@@ -19,68 +19,65 @@ async function fetchJson(url: string) {
   return response.json();
 }
 
-async function fetchHtml(url: string) {
+async function fetchText(url: string) {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(12000),
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ArthanesiaMarket/1.0; +https://arthanesia.github.io)",
-      "Accept": "text/html,application/xhtml+xml",
-    },
+    headers: { "Accept": "text/csv,text/plain,*/*" },
   });
-  if (!response.ok) throw new Error("ANTAM page unavailable");
+  if (!response.ok) throw new Error("ANTAM daily feed unavailable (" + response.status + ")");
   return response.text();
 }
 
-function plainText(html: string): string {
-  return html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&#?[a-z0-9]+;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+function parseAntamDailyCsv(csv: string) {
+  const lines = csv.trim().split(/\r?\n/);
+  if (lines.length < 2) throw new Error("ANTAM daily feed is empty");
+  const header = lines[0].split(",").map(x => x.trim());
+  const index = (name: string) => header.indexOf(name);
+  const required = ["date", "source", "brand", "product", "weight_g", "sell_price", "buyback_price", "source_updated_at", "scraped_at"];
+  for (const name of required) if (index(name) < 0) throw new Error("ANTAM feed missing column " + name);
+
+  const rows = lines.slice(1).map(line => {
+    const cols = line.split(",");
+    const get = (name: string) => cols[index(name)]?.trim() ?? "";
+    return {
+      date: get("date"),
+      source: get("source"),
+      brand: get("brand"),
+      product: get("product"),
+      weight: Number(get("weight_g")),
+      sell: Number(get("sell_price")),
+      buyback: Number(get("buyback_price")),
+      sourceUpdatedAt: get("source_updated_at"),
+      scrapedAt: get("scraped_at"),
+    };
+  }).filter(row =>
+    row.source === "logammulia" &&
+    row.brand === "antam" &&
+    row.product === "gold_bar" &&
+    row.weight === 1 &&
+    Number.isFinite(row.sell) && row.sell > 100000 &&
+    Number.isFinite(row.buyback) && row.buyback > 100000 &&
+    /^\d{4}-\d{2}-\d{2}$/.test(row.date)
+  ).sort((a, b) =>
+    b.date.localeCompare(a.date) ||
+    Date.parse(b.sourceUpdatedAt) - Date.parse(a.sourceUpdatedAt) ||
+    Date.parse(b.scrapedAt) - Date.parse(a.scrapedAt)
+  );
+
+  const latest = rows[0];
+  if (!latest) throw new Error("No valid ANTAM 1 gram retail/buyback row found");
+  const ageMs = Date.now() - Date.parse(latest.sourceUpdatedAt);
+  const stale = !Number.isFinite(ageMs) || ageMs > 36 * 60 * 60 * 1000;
+  return { ...latest, stale, rowCount: rows.length };
 }
 
-function parseRupiah(value: string): number | null {
-  const digits = value.replace(/[^0-9]/g, "");
-  const amount = Number(digits);
-  return Number.isFinite(amount) && amount >= 100000 && amount <= 20000000 ? amount : null;
-}
-
-function parseRetail(html: string) {
-  const rows = html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? [];
-  for (const row of rows) {
-    const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)]
-      .map(match => plainText(match[1]));
-    if (!cells.length || !/^1\s*(?:gr|gram)$/i.test(cells[0].trim())) continue;
-    const base = parseRupiah(cells[1] ?? "");
-    const afterTax = parseRupiah(cells[2] ?? "");
-    if (base) {
-      const text = plainText(html);
-      const date = text.match(/Harga Emas Hari Ini[,\s]+([0-9]{1,2}\s+[A-Za-z]+\s+[0-9]{4})/i)?.[1] ?? null;
-      return { base, afterTax: afterTax ?? base, priceDate: date };
-    }
-  }
-  return null;
-}
-
-function parseBuyback(html: string) {
-  const lower = html.toLowerCase();
-  const index = lower.indexOf("harga buyback");
-  if (index < 0) return null;
-  const fragment = html.slice(index, index + 2500);
-  const text = plainText(fragment);
-  const textMatch = text.match(/harga\s*buyback[\s\S]{0,180}?rp\s*([0-9][0-9.,]{4,})/i);
-  if (textMatch) {
-    const value = parseRupiah(textMatch[1]);
-    if (value) return value;
-  }
-  const rawCandidates = [...fragment.matchAll(/(?:value\s*=\s*["']|Rp\s*)([0-9][0-9.,]{4,})/gi)]
-    .map(match => parseRupiah(match[1]))
-    .filter((value): value is number => value !== null);
-  return rawCandidates.find(value => value > 500000) ?? null;
+function jakartaDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 Deno.serve(async (req: Request) => {
@@ -90,30 +87,19 @@ Deno.serve(async (req: Request) => {
   const errors: string[] = [];
   let fx: any = null;
   let gold: any = null;
-  let antamRetail: ReturnType<typeof parseRetail> = null;
-  let antamBuyback: number | null = null;
-  let antamPageDate: string | null = null;
+  let antam: ReturnType<typeof parseAntamDailyCsv> | null = null;
+  const year = new Date().toISOString().slice(0, 4);
+  const antamCsvUrl = `https://raw.githubusercontent.com/hafidznrg/gold-price-tracker/main/data/prices/logammulia/${year}.csv`;
 
-  const [fxResult, goldResult, retailResult, buybackResult] = await Promise.allSettled([
+  const [fxResult, goldResult, antamResult] = await Promise.allSettled([
     fetchJson("https://open.er-api.com/v6/latest/IDR"),
     fetchJson("https://api.gold-api.com/price/XAU"),
-    fetchHtml("https://www.logammulia.com/id/harga-emas-hari-ini").then(html => {
-      antamRetail = parseRetail(html);
-      if (!antamRetail) throw new Error("Retail price not found");
-      antamPageDate = antamRetail.priceDate;
-      return true;
-    }),
-    fetchHtml("https://www.logammulia.com/id/sell/gold?npwp=off").then(html => {
-      antamBuyback = parseBuyback(html);
-      if (!antamBuyback) throw new Error("Buyback price not found");
-      return true;
-    }),
+    fetchText(antamCsvUrl).then(parseAntamDailyCsv),
   ]);
 
   if (fxResult.status === "fulfilled") fx = fxResult.value; else errors.push("fx");
-  if (goldResult.status === "fulfilled") gold = goldResult.value; else errors.push("gold");
-  if (retailResult.status === "rejected") errors.push("antam-retail");
-  if (buybackResult.status === "rejected") errors.push("antam-buyback");
+  if (goldResult.status === "fulfilled") gold = goldResult.value; else errors.push("gold-spot");
+  if (antamResult.status === "fulfilled") antam = antamResult.value; else errors.push("antam-daily-feed");
 
   const usdPerIdr = Number(fx?.rates?.USD ?? 0);
   const idrPerUsd = usdPerIdr > 0 ? 1 / usdPerIdr : 0;
@@ -121,19 +107,16 @@ Deno.serve(async (req: Request) => {
   const goldSpotIdrPerGram = idrPerUsd > 0 && goldUsdPerOunce > 0
     ? goldUsdPerOunce * idrPerUsd / 31.1034768
     : null;
+
   const currencies = ["IDR", "USD", "EUR", "GBP", "JPY", "SGD", "AUD", "MYR"];
   const rates: Record<string, number> = { IDR: 1 };
   for (const code of currencies.filter(code => code !== "IDR")) {
     const raw = Number(fx?.rates?.[code] ?? 0);
-    if (raw > 0 && idrPerUsd > 0) {
-      // open.er-api rates are units of currency per one IDR.
-      rates[code] = raw;
-    }
+    if (raw > 0) rates[code] = raw;
   }
 
   const now = new Date().toISOString();
-  const antamAvailable = !!(antamRetail?.base || antamBuyback);
-  if (!fx && !gold && !antamAvailable) {
+  if (!fx && !gold && !antam) {
     return json({ error: "Data pasar sementara tidak tersedia.", providerErrors: errors }, 503);
   }
 
@@ -153,19 +136,33 @@ Deno.serve(async (req: Request) => {
       idrPerGram: goldSpotIdrPerGram,
       source: "Gold API XAU spot",
       updatedAt: gold?.updatedAt ?? gold?.timestamp ?? null,
-      note: "Harga spot global 24K, hanya referensi pasar dan bukan harga ritel Indonesia.",
+      note: "Harga spot global 24K, bukan harga ritel Indonesia.",
     },
     antam: {
-      retailIdrPerGram: antamRetail?.base ?? null,
-      retailInclTaxIdrPerGram: antamRetail?.afterTax ?? null,
-      buybackIdrPerGram: antamBuyback,
-      source: "Logam Mulia ANTAM official",
-      priceDate: antamPageDate,
+      retailIdrPerGram: antam?.sell ?? null,
+      retailInclTaxIdrPerGram: antam ? Math.round(antam.sell * 1.0025) : null,
+      buybackIdrPerGram: antam?.buyback ?? null,
+      source: antam ? "Logam Mulia ANTAM · mirrored daily feed" : null,
+      sourceUrl: antamCsvUrl,
+      priceDate: antam?.date ?? null,
+      sourceUpdatedAt: antam?.sourceUpdatedAt ?? null,
+      scrapedAt: antam?.scrapedAt ?? null,
       updatedAt: now,
-      priceUpdateSchedule: "Harga retail ANTAM diperbarui harian sekitar pukul 08.30 WIB; buyback mengikuti harga pada hari transaksi.",
+      stale: antam?.stale ?? true,
+      available: !!antam,
+      priceUpdateSchedule: "Snapshot harian ANTAM; bukan tick-by-tick.",
+      tax: {
+        purchasePph22WithNpwp: 0.0025,
+        purchasePph22WithoutNpwp: 0.005,
+        buybackPph22ThresholdIdr: 10000000,
+        buybackPph22WithNpwp: 0.015,
+        buybackPph22WithoutNpwp: 0.03,
+        note: "Estimasi PPh 22; pajak aktual mengikuti peraturan, NPWP, dan nilai transaksi.",
+      },
       zakatReference: "Nisab zakat emas 85 gram; BAZNAS merujuk harga buyback emas ANTAM.",
     },
     serverTime: now,
+    jakartaDate: jakartaDate(),
     providerErrors: errors,
   });
 });
