@@ -159,13 +159,32 @@ const AUTH_REDIRECT_URL="https://arthanesia.github.io/app/";
 const KEY="sb_publishable_-kbqcW7De6AgeVLgBkTaPg_iD1EicRt";
 const sb=window.supabase?.createClient(URL,KEY);
 const $=id=>document.getElementById(id);
-let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null,aiAutoRequested=false,aiBusy=false;
+let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null,aiAutoRequested=false,aiBusy=false,recoveryMode=false;
 const money=v=>"Rp"+Math.round(Number(v||0)).toLocaleString("id-ID");
 function show(el){$(el).classList.remove("hidden")}function hide(el){$(el).classList.add("hidden")}
 function msg(id,text){$(id).textContent=text;show(id)}
 function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if((name==="overview"||name==="transactions")&&user)loadMarket();if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
 function showAuth(text=""){show("authView");hide("appView");hide("signOut");if(text)msg("authMessage",text)}
+function showPasswordRecovery(){
+ recoveryMode=true;
+ user=null;
+ showAuth();
+ hide("resendVerification");
+ hide("forgotPassword");
+ $("authForm").classList.add("hidden");
+ $("switchAuth").classList.add("hidden");
+ $("passwordRecovery").classList.remove("hidden");
+ $("authTitle").textContent="Atur ulang password";
+ $("authMessage").classList.add("hidden");
+ $("newPassword").value="";
+}
+function shouldEnterAppFromAuthEvent(event,session,isRecovering){return Boolean(session)&&!isRecovering&&(event==="INITIAL_SESSION"||event==="SIGNED_IN");}
+function handleAuthStateChange(event,session){
+ if(event==="PASSWORD_RECOVERY"&&session){showPasswordRecovery();return;}
+ if(shouldEnterAppFromAuthEvent(event,session,recoveryMode)&&!user){enter(session.user);return;}
+ if(event==="SIGNED_OUT"){user=null;profile=null;rows=[];recoveryMode=false;showAuth();}
+}
 function formatMarketTime(value){
  const date=new Date(value||"");
  return Number.isNaN(date.getTime())?"":new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"}).format(date)+" WIB";
@@ -335,7 +354,7 @@ $("authForm").addEventListener("submit",async e=>{
    result=await sb.auth.signInWithPassword({email,password});
    if(result.error)throw result.error;
   }
-  await enter(result.data.user||result.data.session.user);
+  // INITIAL_SESSION / SIGNED_IN is handled once by the shared auth state listener.
  }catch(error){msg("authMessage",error.message||"Autentikasi gagal.");if(/confirm|verif|not verified/i.test(error.message||""))show("resendVerification");}
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
@@ -367,12 +386,13 @@ $("saveNewPassword").addEventListener("click",async()=>{
  try{
   const {data,error}=await sb.auth.updateUser({password});
   if(error)throw error;
-  $("passwordRecovery").classList.add("hidden");$("authForm").classList.remove("hidden");$("switchAuth").classList.remove("hidden");
+  recoveryMode=false;
+  $("passwordRecovery").classList.add("hidden");$("authForm").classList.remove("hidden");$("forgotPassword").classList.remove("hidden");$("switchAuth").classList.remove("hidden");$("newPassword").value="";hide("authMessage");
   await enter(data.user);
  }catch(error){msg("authMessage",error.message||"Password baru gagal disimpan.")}
  finally{$("saveNewPassword").disabled=false;$("saveNewPassword").textContent="Simpan password baru";}
 });
-$("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=null;rows=[];aiAutoRequested=false;showAuth("Anda sudah keluar.")});
+$("signOut").addEventListener("click",async()=>{await sb.auth.signOut();user=null;profile=null;rows=[];aiAutoRequested=false;recoveryMode=false;showAuth("Anda sudah keluar.")});
 function applyTheme(theme){const selected=theme==="dark"?"dark":"light";document.documentElement.dataset.theme=selected;localStorage.setItem("arthanesia-theme",selected);$("themeToggle").textContent=selected==="dark"?"☀":"☾";$("themeToggle").setAttribute("aria-label",selected==="dark"?"Aktifkan tema terang":"Aktifkan tema gelap");}
 applyTheme(localStorage.getItem("arthanesia-theme")||"light");
 $("themeToggle").addEventListener("click",()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
@@ -451,12 +471,7 @@ $("txDate").value=new Date().toISOString().slice(0,10);
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 setInterval(()=>{if(user&&!document.hidden&&!$("page-overview").classList.contains("hidden"))loadMarket()},5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(user&&!document.hidden&&!$("page-overview").classList.contains("hidden"))loadMarket()});
-sb?.auth.getSession().then(({data})=>{if(data.session)enter(data.session.user);});
-sb?.auth.onAuthStateChange((event,session)=>{
- if(event==="PASSWORD_RECOVERY"&&session){
-  hide("appView");show("authView");$("authForm").classList.add("hidden");$("forgotPassword").classList.add("hidden");$("switchAuth").classList.add("hidden");$("passwordRecovery").classList.remove("hidden");$("authTitle").textContent="Buat password baru";$("authMessage").classList.add("hidden");
- }else if(event==="SIGNED_IN"&&session&&!user)enter(session.user);
-});
+sb?.auth.onAuthStateChange(handleAuthStateChange);
 })();
 </script>
 </body></html>
