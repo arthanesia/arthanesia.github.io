@@ -188,7 +188,7 @@ async function loadMarket(){
   renderZakat();
  }
 }
-function rateToIdr(currency){if(currency==="IDR")return 1;const r=Number(market?.rates?.[currency]||0);return r>0?r:0}
+function rateToIdr(currency){if(currency==="IDR")return 1;const unitsPerIdr=Number(market?.rates?.[currency]||0);return unitsPerIdr>0?1/unitsPerIdr:0}
 function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";}
 function currentBuyback(){const raw=String($("goldBuybackManual")?.value||"").trim(),manual=Number(raw.replace(/\./g,"").replace(",",".").replace(/[^0-9.]/g,""));return manual>0?manual:Number(market?.antam?.buybackIdrPerGram||0)}
 function renderZakat(){
