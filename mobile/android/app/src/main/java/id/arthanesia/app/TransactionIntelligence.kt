@@ -158,15 +158,15 @@ internal object TransactionIntelligence {
                 "puluh" -> { group += (if (pending == 0L) 1L else pending) * 10L; pending = 0; foundNumber = true }
                 "ratus", "seratus" -> { group += (if (pending == 0L) 1L else pending) * 100L; pending = 0; foundNumber = true }
                 "seribu", "ribu" -> {
-                    total += (group + if (pending == 0L) 1L else pending) * 1_000L
+                    total += (group + pending).coerceAtLeast(1L) * 1_000L
                     group = 0; pending = 0; foundNumber = true
                 }
                 "sejuta", "juta" -> {
-                    total += (group + if (pending == 0L) 1L else pending) * 1_000_000L
+                    total += (group + pending).coerceAtLeast(1L) * 1_000_000L
                     group = 0; pending = 0; foundNumber = true
                 }
                 "miliar", "milyar" -> {
-                    total += (group + if (pending == 0L) 1L else pending) * 1_000_000_000L
+                    total += (group + pending).coerceAtLeast(1L) * 1_000_000_000L
                     group = 0; pending = 0; foundNumber = true
                 }
             }
