@@ -163,7 +163,7 @@ let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="m
 const money=v=>"Rp"+Math.round(Number(v||0)).toLocaleString("id-ID");
 function show(el){$(el).classList.remove("hidden")}function hide(el){$(el).classList.add("hidden")}
 function msg(id,text){$(id).textContent=text;show(id)}
-function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if(name==="overview"&&user)loadMarket();if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
+function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if((name==="overview"||name==="transactions")&&user)loadMarket();if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
 function showAuth(text=""){show("authView");hide("appView");hide("signOut");if(text)msg("authMessage",text)}
 function formatMarketTime(value){
@@ -330,7 +330,7 @@ $("authForm").addEventListener("submit",async e=>{
    if(result.error)throw result.error;
   }
   await enter(result.data.user||result.data.session.user);
- }catch(error){msg("authMessage",error.message||"Autentikasi gagal.")}
+ }catch(error){msg("authMessage",error.message||"Autentikasi gagal.");if(/confirm|verif|not verified/i.test(error.message||""))show("resendVerification");}
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
 $("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);hide("resendVerification");$("password").autocomplete=signup?"new-password":"current-password";$("password").type="password";$("togglePassword").textContent="Tampilkan";});
