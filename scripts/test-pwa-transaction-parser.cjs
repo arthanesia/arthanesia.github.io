@@ -19,7 +19,7 @@ const parserSource = appScript.slice(parserStart, parserEnd) +
   "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateGoldZakat, calculateIncomeZakat };";
 const sandbox = {};
 vm.runInNewContext(parserSource, sandbox, { filename: "app transaction parser" });
-const { parseVoice, parseReceiptText } = sandbox.__arthanesiaParser;
+const { parseVoice, parseReceiptText, calculateGoldZakat, calculateIncomeZakat } = sandbox.__arthanesiaParser;
 
 let parsed = parseVoice("pengeluaran 5000 beli bahan baku");
 assert.equal(parsed.type, "expense");
