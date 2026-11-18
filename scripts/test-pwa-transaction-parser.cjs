@@ -85,8 +85,7 @@ assert.equal(labelledReceipt.amount, 16650, "TOTAL BAYAR should win over subtota
 
 const receiptWithCardNumber = parseReceiptText(`
 TOKO MAKMUR
-TOTAL BAYAR Rp 33.000
-KARTU 12345678
+TOTAL BAYAR Rp 33.000 KARTU 12345678
 `);
 assert.equal(receiptWithCardNumber.amount, 33000, "card reference after total must not replace payment amount");
 
