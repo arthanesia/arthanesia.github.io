@@ -1094,7 +1094,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                         color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        if (retailBasePerGram > 0) "Harga dasar ${rupiah(retailBasePerGram.toLong())} + estimasi PPh 22 0,25% (NPWP)"
+                        if (retailBasePerGram > 0) "Harga ritel konsumen akhir · PPh 22 tidak dipungut"
                         else "Harga jual ritel ANTAM 1 gram belum tersedia",
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
                     )
@@ -1118,7 +1118,7 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                         color = if (market?.antamStale == true) Gold else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 8.sp
                     )
-                    Text("PPh 22 pembelian estimasi 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: estimasi 1,5% / 3%. Nilai zakat memakai buyback bruto, bukan nilai setelah pajak.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                    Text("Konsumen akhir tidak dipungut PPh 22 atas pembelian emas. Tarif umum pelaku usaha: 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: PPh 22 1,5% / 3%. Nisab zakat memakai buyback bruto.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 }
             }
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
