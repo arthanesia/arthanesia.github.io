@@ -566,7 +566,7 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QuickAction("Catat", Icons.Default.Add, Brand, Modifier.weight(1f)) { onAdd(true) }
-            QuickAction("VoiceCash", Icons.Default.Mic, Color(0xFF8A63D2), Modifier.weight(1f), onVoice)
+            QuickAction("VoiceCash", Icons.Default.Mic, Color(0xFF008A68), Modifier.weight(1f), onVoice)
             QuickAction("Analitik", Icons.Default.Insights, Green, Modifier.weight(1f)) { onNavigate(Page.ANALYTICS) }
             QuickAction("Tanya AI", Icons.Default.AutoAwesome, Gold, Modifier.weight(1f)) { onNavigate(Page.ASSISTANT) }
         }
