@@ -74,5 +74,5 @@ jobs:
           target_commitish: main
           generate_release_notes: true
           draft: false
-          prerelease: true
+          prerelease: false
           files: mobile/android/app/build/outputs/apk/debug/Arthanesia.apk
