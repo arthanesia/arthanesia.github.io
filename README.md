@@ -17,7 +17,7 @@ Arthanesia is a financial-management product for Indonesian small businesses. Th
 
 The native Android application uses Kotlin + Jetpack Compose, SQLite for offline persistence, and Supabase Auth/REST for account sessions and transaction sync.
 
-Version: **0.6.3** (debug / early-access build).
+Version: **0.7.0** (debug / early-access build).
 
 Included:
 - Email/password signup and login.
@@ -27,12 +27,12 @@ Included:
 - Transaction currency selection: IDR, USD, EUR, GBP, JPY, SGD, AUD, MYR.
 - Original amount, FX rate snapshot, and IDR base value stored separately.
 - VoiceCash using Android speech recognition with structured amount, description, transaction type, and category suggestions.
-- Receipt OCR using on-device ML Kit with total, item description, and expense-category suggestions; receipt photos are processed locally and are not saved as transaction attachments.
+- Receipt OCR using on-device ML Kit with safer total-label priority, item-line extraction, merchant/category suggestions, and manual review when no reliable total is detected; photos are processed locally and are not saved as attachments.
 - Suggested voice/OCR transaction fields are reviewed by the user before saving.
 - Professional A4 bookkeeping PDF, Android print dialog, and CSV export.
 - Cashflow summary and transaction-derived seven-day candlestick chart.
-- Annual tax estimate and configured 250g gold nisab zakat indicator.
-- Artha Assistant local analysis plus consent-gated cloud endpoint.
+- Gold zakat calculator using the 85g nisab, one-year haul check, 2.5% rate, and ANTAM retail/buyback reference feed; the nisab uses ANTAM buyback as cited by BAZNAS. Income zakat uses BAZNAS 2026 threshold.
+- Artha AI online analysis through the authenticated Supabase Edge Function; only transaction aggregates/category totals are sent to Gemini, while receipt photos and descriptions are excluded. Requires `GEMINI_API_KEY` in Supabase Edge Function Secrets.
 
 Build requirements: JDK 17, Android SDK Platform 36, Android Build Tools 36.0.0, and Gradle 9.3.1.
 
@@ -93,7 +93,7 @@ Deployed Edge Functions:
 ## Important data/provider limitations
 
 - Currency reference feed is sourced from open.er-api.com and updates on the provider's daily schedule; it is **not tick-by-tick live FX**. Transaction values store their original currency and conversion snapshot, so later rate updates do not rewrite history.
-- Gold uses an XAU spot feed, converted to IDR per gram, and refreshed by the app every 15 minutes. It is not an Antam retail quote.
+- Gold market data includes global XAU spot plus official ANTAM 1g retail and buyback references. ANTAM retail prices are generally refreshed daily around 08:30 WIB, not tick-by-tick; the app refreshes the feed periodically. Zakat nisab uses buyback price, in line with BAZNAS guidance. If ANTAM's official page is temporarily unreachable, the user can enter a manual buyback reference and the screen clearly marks the source.
 - Zakat and tax screens are estimates. Zakat uses the Arthanesia 250g nisab configuration and net recorded annual cashflow; the correct basis should be reviewed with the relevant zakat institution. The PPh estimate uses net income after entered qualifying deductions and default PTKP TK/0; household status and allowable deductions must be verified.
 - The release is a debug-signed APK for early access, not a Play Store production-signed binary. The current build has passed Gradle compilation but has not been tested across a device matrix.
 
