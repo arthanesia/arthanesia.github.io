@@ -167,8 +167,37 @@ internal object SupabaseApi {
             val result = request("POST", "/auth/v1/signup?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F", body.toString())
             if (result.code !in 200..299) throw IllegalStateException(errorMessage(result.body, "Pendaftaran gagal."))
             val response = JSONObject(result.body)
+            val responseUser = response.optJSONObject("user")
+            val identities = responseUser?.optJSONArray("identities")
+            if (identities != null && identities.length() == 0) {
+                throw IllegalStateException("Email ini sudah terdaftar. Pilih Masuk atau gunakan Lupa password; jangan membuat akun kedua.")
+            }
             if (response.has("access_token") && !response.isNull("access_token")) sessionFrom(response) else null
         }
+
+    suspend fun recoverPassword(email: String) = withContext(Dispatchers.IO) {
+        val address = email.trim()
+        require(address.contains("@")) { "Masukkan alamat email yang valid terlebih dahulu." }
+        val body = JSONObject().put("email", address)
+        val result = request(
+            "POST",
+            "/auth/v1/recover?redirect_to=https%3A%2F%2Farthanesia.github.io%2Fapp%2F",
+            body.toString()
+        )
+        if (result.code !in 200..299) {
+            throw IllegalStateException(errorMessage(result.body, "Permintaan reset password gagal. Coba kembali beberapa saat lagi."))
+        }
+    }
+
+    suspend fun resendSignupConfirmation(email: String) = withContext(Dispatchers.IO) {
+        val address = email.trim()
+        require(address.contains("@")) { "Masukkan alamat email yang valid terlebih dahulu." }
+        val body = JSONObject().put("type", "signup").put("email", address)
+        val result = request("POST", "/auth/v1/resend", body.toString())
+        if (result.code !in 200..299) {
+            throw IllegalStateException(errorMessage(result.body, "Email verifikasi belum dapat dikirim ulang."))
+        }
+    }
 
     suspend fun refresh(session: CloudSession): CloudSession = withContext(Dispatchers.IO) {
         val body = JSONObject().put("refresh_token", session.refreshToken)
@@ -329,6 +358,12 @@ internal object SupabaseApi {
 
     private fun errorMessage(raw: String, fallback: String): String = runCatching {
         val obj = JSONObject(raw)
-        obj.optString("msg").ifBlank { obj.optString("message").ifBlank { obj.optString("error_description").ifBlank { fallback } } }
+        obj.optString("msg").ifBlank {
+            obj.optString("message").ifBlank {
+                obj.optString("error_description").ifBlank {
+                    obj.optString("error").ifBlank { obj.optString("hint").ifBlank { fallback } }
+                }
+            }
+        }
     }.getOrDefault(fallback)
 }
