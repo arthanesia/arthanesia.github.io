@@ -51,18 +51,19 @@ internal object TransactionIntelligence {
         val lines = ocrText.lines().map { it.trim().replace(Regex("\\s+"), " ") }.filter { it.isNotBlank() }
         val amount = parseReceiptAmount(lines)
         val fullText = lines.joinToString(" ")
-        val itemLines = lines.asSequence()
-            .filter { line ->
-                line.count { it.isLetter() } >= 3 &&
-                    numericAmount.containsMatchIn(line) &&
-                    !receiptTotalLabels.containsMatchIn(line) &&
-                    !ignoredReceiptLine.containsMatchIn(line)
-            }
-            .map(::cleanReceiptLine)
-            .filter { it.length >= 3 }
-            .distinct()
-            .take(8)
-            .toList()
+        val itemLines = lines.mapIndexedNotNull { index, line ->
+            val isItemDescription = line.count { it.isLetter() } >= 3 &&
+                !receiptTotalLabels.containsMatchIn(line) &&
+                !ignoredReceiptLine.containsMatchIn(line)
+            if (!isItemDescription) return@mapIndexedNotNull null
+            val amountOnSameLine = numericAmount.containsMatchIn(line)
+            val amountOnNextLine = lines.getOrNull(index + 1)?.let { next ->
+                next.count { it.isLetter() } < 3 &&
+                    numericAmount.containsMatchIn(next) &&
+                    !ignoredReceiptLine.containsMatchIn(next)
+            } ?: false
+            if (amountOnSameLine || amountOnNextLine) cleanReceiptLine(line).takeIf { it.length >= 3 } else null
+        }.distinct().take(8)
         val fallbackItems = if (itemLines.isNotEmpty()) itemLines else lines.asSequence()
             .filter { it.count { ch -> ch.isLetter() } >= 5 && !ignoredReceiptLine.containsMatchIn(it) && !receiptTotalLabels.containsMatchIn(it) }
             .map(::cleanReceiptLine)
@@ -108,7 +109,7 @@ internal object TransactionIntelligence {
         var bestIndex = -1
         var bestAmount: Long? = null
         lines.forEachIndexed { index, line ->
-            if (subtotalLabels.containsMatchIn(line)) return@forEachIndexed
+            if (subtotalLabels.containsMatchIn(line) || ignoredReceiptLine.containsMatchIn(line)) return@forEachIndexed
             val lower = line.lowercase(locale)
             val priority = when {
                 Regex("(?i)grand\\s*total|total\\s*(?:pembayaran|bayar|akhir)|jumlah\\s*(?:dibayar|bayar)|amount\\s*due|net\\s*payable").containsMatchIn(lower) -> 3
@@ -116,7 +117,15 @@ internal object TransactionIntelligence {
                 else -> 0
             }
             if (priority == 0) return@forEachIndexed
-            val value = numericAmount.findAll(line).lastOrNull()?.groupValues?.getOrNull(1)?.let(::digitsToLong)
+            val sameLineAmount = numericAmount.findAll(line).lastOrNull()?.groupValues?.getOrNull(1)?.let(::digitsToLong)
+            val followingLine = lines.getOrNull(index + 1)
+            val nextLineAmount = if (
+                followingLine != null &&
+                followingLine.count { it.isLetter() } < 3 &&
+                !ignoredReceiptLine.containsMatchIn(followingLine) &&
+                !subtotalLabels.containsMatchIn(followingLine)
+            ) numericAmount.findAll(followingLine).lastOrNull()?.groupValues?.getOrNull(1)?.let(::digitsToLong) else null
+            val value = sameLineAmount ?: nextLineAmount
             if (value != null && value > 0 && (priority > bestPriority || (priority == bestPriority && index > bestIndex))) {
                 bestPriority = priority
                 bestIndex = index
