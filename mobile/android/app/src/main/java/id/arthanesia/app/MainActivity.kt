@@ -908,6 +908,59 @@ private fun GoalsScreen(goals: List<SavingGoal>, onAdd: () -> Unit) {
 }
 
 @Composable
+internal data class GoldZakatResult(
+    val ownedGrams: Double,
+    val buybackPricePerGram: Double,
+    val nisabGrams: Double,
+    val ownedValue: Long,
+    val nisabValue: Long,
+    val meetsNisab: Boolean,
+    val haulComplete: Boolean,
+    val eligible: Boolean,
+    val zakatAmount: Long
+)
+
+internal object ZakatCalculator {
+    fun evaluateGold(
+        ownedGrams: Double,
+        buybackPricePerGram: Double,
+        haulComplete: Boolean,
+        nisabGrams: Double = 85.0,
+        rate: Double = 0.025
+    ): GoldZakatResult {
+        val grams = ownedGrams.takeIf { it.isFinite() }?.coerceAtLeast(0.0) ?: 0.0
+        val price = buybackPricePerGram.takeIf { it.isFinite() }?.coerceAtLeast(0.0) ?: 0.0
+        val safeNisab = nisabGrams.takeIf { it.isFinite() && it > 0.0 } ?: 85.0
+        val safeRate = rate.takeIf { it.isFinite() && it in 0.0..1.0 } ?: 0.025
+        val ownedValue = (grams * price).takeIf { it.isFinite() }?.toLong() ?: 0L
+        val nisabValue = (safeNisab * price).takeIf { it.isFinite() }?.toLong() ?: 0L
+        val meetsNisab = grams >= safeNisab && price > 0
+        val eligible = meetsNisab && haulComplete
+        val zakat = if (eligible) (ownedValue * safeRate).toLong() else 0L
+        return GoldZakatResult(
+            ownedGrams = grams,
+            buybackPricePerGram = price,
+            nisabGrams = safeNisab,
+            ownedValue = ownedValue,
+            nisabValue = nisabValue,
+            meetsNisab = meetsNisab,
+            haulComplete = haulComplete,
+            eligible = eligible,
+            zakatAmount = zakat
+        )
+    }
+
+    fun evaluateIncome(
+        annualIncome: Long,
+        annualNisab: Long = 91_681_728L,
+        rate: Double = 0.025
+    ): Pair<Boolean, Long> {
+        val income = annualIncome.coerceAtLeast(0L)
+        val eligible = income >= annualNisab && annualNisab > 0
+        return eligible to if (eligible) (income * rate.coerceIn(0.0, 1.0)).toLong() else 0L
+    }
+}
+
 private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     var mode by remember { mutableStateOf("emas") }
     var goldGramsText by remember { mutableStateOf("") }
