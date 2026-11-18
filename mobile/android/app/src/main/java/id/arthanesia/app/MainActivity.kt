@@ -488,7 +488,7 @@ private fun LoginScreen(
 
 @Composable
 private fun WalletLogo(size: androidx.compose.ui.unit.Dp) {
-    Box(Modifier.size(size).background(Brush.linearGradient(listOf(Color(0xFF6D68FF), Color(0xFF4F49E8))), RoundedCornerShape(size * .27f)), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size).background(Brush.linearGradient(listOf(Color(0xFF0070BA), Color(0xFF003087))), RoundedCornerShape(size * .27f)), contentAlignment = Alignment.Center) {
         Icon(Icons.Default.AccountBalanceWallet, "Logo Arthanesia", tint = Color.White, modifier = Modifier.size(size * .47f))
     }
 }
