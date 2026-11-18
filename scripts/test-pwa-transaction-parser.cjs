@@ -16,7 +16,7 @@ const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
 
 const parserSource = appScript.slice(parserStart, parserEnd) +
-  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText };";
+  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateGoldZakat, calculateIncomeZakat };";
 const sandbox = {};
 vm.runInNewContext(parserSource, sandbox, { filename: "app transaction parser" });
 const { parseVoice, parseReceiptText } = sandbox.__arthanesiaParser;
@@ -56,4 +56,49 @@ assert.equal(receipt.category, "Bahan Baku");
 assert.match(receipt.title, /Tepung Terigu/);
 assert.match(receipt.title, /Gula Pasir/);
 
-console.log("PWA parser tests passed: voice amounts, categories, and multi-item receipt OCR.");
+
+const noTotalReceipt = parseReceiptText(`
+TOKO MAKMUR
+Tepung Terigu 1 KG 15.000
+Gula Pasir 1 KG 18.000
+`);
+assert.equal(noTotalReceipt.amount, null, "product prices must not be mistaken for receipt total");
+
+const labelledReceipt = parseReceiptText(`
+TOKO MAKMUR
+Tepung Terigu 1 KG 15.000
+Subtotal Rp 15.000
+PPN Rp 1.650
+TOTAL BAYAR Rp 16.650
+Tunai Rp 20.000
+Kembali Rp 3.350
+`);
+assert.equal(labelledReceipt.amount, 16650, "TOTAL BAYAR should win over subtotal, tax, cash and change");
+
+let goldZakat = calculateGoldZakat(85, 2272000, true);
+assert.equal(goldZakat.meetsNisab, true);
+assert.equal(goldZakat.eligible, true);
+assert.equal(goldZakat.nisabValue, 193120000);
+assert.equal(goldZakat.zakatAmount, 4828000);
+
+goldZakat = calculateGoldZakat(100, 2272000, false);
+assert.equal(goldZakat.meetsNisab, true);
+assert.equal(goldZakat.eligible, false);
+assert.equal(goldZakat.zakatAmount, 0, "haul is required");
+
+goldZakat = calculateGoldZakat(84.99, 2272000, true);
+assert.equal(goldZakat.meetsNisab, false);
+assert.equal(goldZakat.zakatAmount, 0, "below 85 grams is not eligible");
+
+goldZakat = calculateGoldZakat(100, 0, true);
+assert.equal(goldZakat.eligible, false, "missing buyback price must not mark zakat as due");
+
+let incomeZakat = calculateIncomeZakat(7640144, 7640144);
+assert.equal(incomeZakat.basis, "monthly");
+assert.equal(incomeZakat.zakatAmount, 191004);
+
+incomeZakat = calculateIncomeZakat(5000000, 91681728);
+assert.equal(incomeZakat.basis, "annual", "variable income can qualify on the annual threshold");
+assert.equal(incomeZakat.zakatAmount, 2292043);
+
+console.log("PWA tests passed: voice, OCR totals, zakat nisab/haul, income thresholds.");
