@@ -262,7 +262,7 @@ async function readReceipt(file){
  if(!text.trim())throw new Error("Teks struk tidak terbaca. Coba foto lebih terang dan lurus.");
  const parsed=parseReceiptText(text);
  $("txType").value="expense";$("txCategory").value=parsed.category;$("txDescription").value=parsed.title;
- if(parsed.amount)$("txAmount").value=String(parsed.amount);
+ $("txAmount").value=parsed.amount?String(parsed.amount):"";
  transactionSource="receipt";
  smartStatus(parsed.amount?"Struk terbaca. Saran: "+parsed.title+" · "+$("txCategory").value+" · "+money(parsed.amount)+". Periksa lalu simpan.":"Struk terbaca, tetapi nominal belum pasti. Isi nominal secara manual sebelum menyimpan.");
 }
