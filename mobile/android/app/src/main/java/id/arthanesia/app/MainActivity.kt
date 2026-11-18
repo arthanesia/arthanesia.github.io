@@ -981,11 +981,30 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     val goldValue = goldResult.ownedValue
     val goldZakat = goldResult.zakatAmount
 
-    val year = java.time.LocalDate.now().year
-    val annualIncome = entries.filter { it.income && it.date.contains(year.toString()) }.sumOf { it.amount }
+    val today = java.time.LocalDate.now()
+    val year = today.year
+    val monthStart = today.withDayOfMonth(1)
+    val dateFormat = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))
+    val incomeEntries = entries.filter { it.income }
+    val annualIncome = incomeEntries.filter {
+        runCatching { java.time.LocalDate.parse(it.date, dateFormat).year == year }.getOrDefault(false)
+    }.sumOf { it.amount }
+    val monthlyIncome = incomeEntries.filter {
+        runCatching {
+            val date = java.time.LocalDate.parse(it.date, dateFormat)
+            date.year == monthStart.year && date.month == monthStart.month
+        }.getOrDefault(false)
+    }.sumOf { it.amount }
+    val monthlyIncomeNisab = 7_640_144L
     val annualIncomeNisab = 91_681_728L
-    val incomeEligible = annualIncome >= annualIncomeNisab
-    val incomeZakat = if (incomeEligible) (annualIncome * 0.025).toLong() else 0L
+    val monthlyIncomeEligible = monthlyIncome >= monthlyIncomeNisab
+    val annualIncomeEligible = annualIncome >= annualIncomeNisab
+    val incomeEligible = monthlyIncomeEligible || annualIncomeEligible
+    val incomeZakat = when {
+        monthlyIncomeEligible -> (monthlyIncome * 0.025).toLong()
+        annualIncomeEligible -> (annualIncome * 0.025).toLong()
+        else -> 0L
+    }
 
     ScreenColumn {
         SectionTitle("Kalkulator Zakat", "Perhitungan berdasarkan harga emas Indonesia dan ketentuan BAZNAS")
@@ -1099,16 +1118,28 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
             }
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text("Rekap pemasukan tahun $year", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(rupiah(annualIncome), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text("Pemasukan bulan ini · ${today.month.getDisplayName(java.time.format.TextStyle.FULL, Locale("id", "ID"))}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(rupiah(monthlyIncome), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Nisab bulanan: ${rupiah(monthlyIncomeNisab)}", fontSize = 9.sp, color = Muted)
+                    Divider()
+                    Text("Akumulasi pemasukan tahun $year", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(rupiah(annualIncome), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Nisab tahunan: ${rupiah(annualIncomeNisab)}", fontSize = 9.sp, color = Muted)
                     LinearProgressIndicator(
-                        progress = { (annualIncome.toDouble() / annualIncomeNisab).toFloat().coerceIn(0f, 1f) },
+                        progress = {
+                            val ratio = if (monthlyIncomeEligible) monthlyIncome.toDouble() / monthlyIncomeNisab
+                                else annualIncome.toDouble() / annualIncomeNisab
+                            ratio.toFloat().coerceIn(0f, 1f)
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         color = if (incomeEligible) Green else Brand
                     )
                     Text(
-                        if (incomeEligible) "Mencapai nisab. Estimasi zakat penghasilan 2,5%: ${rupiah(incomeZakat)}"
-                        else "Belum mencapai nisab. Selisih menuju nisab: ${rupiah((annualIncomeNisab - annualIncome).coerceAtLeast(0L))}",
+                        when {
+                            monthlyIncomeEligible -> "Nisab bulanan terpenuhi. Estimasi zakat bulan ini (2,5%): ${rupiah(incomeZakat)}"
+                            annualIncomeEligible -> "Nisab tahunan terpenuhi. Estimasi zakat tahunan (2,5%): ${rupiah(incomeZakat)}"
+                            else -> "Belum mencapai nisab bulanan atau tahunan. Sisa menuju nisab bulanan: ${rupiah((monthlyIncomeNisab - monthlyIncome).coerceAtLeast(0L))}."
+                        },
                         color = if (incomeEligible) Green else Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold
                     )
                 }
