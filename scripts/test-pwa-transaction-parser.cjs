@@ -7,6 +7,9 @@ const inlineScripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?
 assert.ok(inlineScripts.length > 0, "PWA inline script must exist");
 
 assert.ok(html.includes('id="togglePassword"'), "web login password must be hidden with a visibility toggle");
+assert.ok(html.includes('const AUTH_REDIRECT_URL="https://arthanesia.github.io/app/";'), "auth emails must return to production URL");
+assert.ok(html.includes('sb.auth.resend({type:"signup"'), "web app must support resending verification email");
+assert.ok(!html.includes('id="goldGrams"') && !html.includes('id="goldBuybackManual"'), "gold ownership and manual buyback fields must be removed");
 assert.ok(html.includes('resetPasswordForEmail'), "web login must expose password recovery");
 assert.ok(html.includes('PASSWORD_RECOVERY'), "web app must handle the password recovery callback");
 assert.ok(html.includes('identities.length===0'), "duplicate email sign-up must be recognized");
@@ -22,10 +25,10 @@ const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
 
 const parserSource = appScript.slice(parserStart, parserEnd) +
-  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateGoldZakat, calculateIncomeZakat };";
+  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateIncomeZakat };";
 const sandbox = {};
 vm.runInNewContext(parserSource, sandbox, { filename: "app transaction parser" });
-const { parseVoice, parseReceiptText, calculateGoldZakat, calculateIncomeZakat } = sandbox.__arthanesiaParser;
+const { parseVoice, parseReceiptText, calculateIncomeZakat } = sandbox.__arthanesiaParser;
 
 let parsed = parseVoice("pengeluaran 5000 beli bahan baku");
 assert.equal(parsed.type, "expense");
@@ -59,8 +62,7 @@ TOTAL Rp 33.000
 `);
 assert.equal(receipt.amount, 33000, "grand total should take precedence over subtotal");
 assert.equal(receipt.category, "Bahan Baku");
-assert.match(receipt.title, /Tepung Terigu/);
-assert.match(receipt.title, /Gula Pasir/);
+assert.equal(receipt.title, "Belanja bahan baku", "receipt description should be a short business summary, not a product list");
 
 
 const noTotalReceipt = parseReceiptText(`
@@ -81,6 +83,19 @@ Kembali Rp 3.350
 `);
 assert.equal(labelledReceipt.amount, 16650, "TOTAL BAYAR should win over subtotal, tax, cash and change");
 
+const receiptWithCardNumber = parseReceiptText(`
+TOKO MAKMUR
+TOTAL BAYAR Rp 33.000
+KARTU 12345678
+`);
+assert.equal(receiptWithCardNumber.amount, 33000, "card reference after total must not replace payment amount");
+
+const ocrZeroReceipt = parseReceiptText(`
+TOKO MAKMUR
+TOTAL BAYAR Rp 33.OOO
+`);
+assert.equal(ocrZeroReceipt.amount, 33000, "OCR letter O in amount should normalize to zero");
+
 const splitLineReceipt = parseReceiptText(`
 TOKO MAKMUR
 Tepung Terigu 1 KG
@@ -91,8 +106,7 @@ TOTAL BAYAR
 Rp 33.000
 `);
 assert.equal(splitLineReceipt.amount, 33000, "TOTAL BAYAR followed by amount on next line should parse");
-assert.match(splitLineReceipt.title, /Tepung Terigu/);
-assert.match(splitLineReceipt.title, /Gula Pasir/);
+assert.equal(splitLineReceipt.title, "Belanja bahan baku");
 
 const splitLineNoTotal = parseReceiptText(`
 TOKO MAKMUR
@@ -102,26 +116,7 @@ Gula Pasir 1 KG
 Rp 18.000
 `);
 assert.equal(splitLineNoTotal.amount, null, "item prices on following lines must not be guessed as receipt total");
-assert.match(splitLineNoTotal.title, /Tepung Terigu/);
-assert.match(splitLineNoTotal.title, /Gula Pasir/);
-
-let goldZakat = calculateGoldZakat(85, 2272000, true);
-assert.equal(goldZakat.meetsNisab, true);
-assert.equal(goldZakat.eligible, true);
-assert.equal(goldZakat.nisabValue, 193120000);
-assert.equal(goldZakat.zakatAmount, 4828000);
-
-goldZakat = calculateGoldZakat(100, 2272000, false);
-assert.equal(goldZakat.meetsNisab, true);
-assert.equal(goldZakat.eligible, false);
-assert.equal(goldZakat.zakatAmount, 0, "haul is required");
-
-goldZakat = calculateGoldZakat(84.99, 2272000, true);
-assert.equal(goldZakat.meetsNisab, false);
-assert.equal(goldZakat.zakatAmount, 0, "below 85 grams is not eligible");
-
-goldZakat = calculateGoldZakat(100, 0, true);
-assert.equal(goldZakat.eligible, false, "missing buyback price must not mark zakat as due");
+assert.equal(splitLineNoTotal.title, "Belanja bahan baku", "receipt description must not list every product");
 
 let incomeZakat = calculateIncomeZakat(7640144, 7640144);
 assert.equal(incomeZakat.basis, "monthly");
