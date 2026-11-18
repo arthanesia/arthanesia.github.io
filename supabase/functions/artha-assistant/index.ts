@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const cors = {
   "Access-Control-Allow-Origin": "https://arthanesia.github.io",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -23,12 +23,22 @@ function idr(value: number): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
   const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
+
+  // Safe configuration probe: report presence only, never reveal any secret value.
+  if (req.method === "GET" && new URL(req.url).searchParams.get("health") === "1") {
+    return json({
+      status: "ok",
+      provider: "Gemini",
+      configured: Boolean(url && anon && geminiKey),
+      model,
+    });
+  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!url || !anon) return json({ error: "Backend AI belum dikonfigurasi." }, 503);
   if (!geminiKey) {
     return json({
