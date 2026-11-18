@@ -580,7 +580,7 @@ private fun AppTopBar(page: Page, business: String, onTheme: () -> Unit, dark: B
     TopAppBar(
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(page.label, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = BrandDark)
+                Text(page.label, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface)
                 Text(business, fontSize = 10.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         },
@@ -637,7 +637,7 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
     ScreenColumn {
         Column {
             Text("BUSINESS OVERVIEW", fontSize = 9.sp, color = Brand, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.4.sp)
-            Text("Halo, $owner 👋", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
+            Text("Halo, $owner 👋", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
             Text("Kelola arus kas $business dengan lebih terarah.", color = Muted, fontSize = 11.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CloudDone, null, tint = if (syncStatus.startsWith("Tersinkron")) Green else Gold, modifier = Modifier.size(14.dp))
@@ -1040,8 +1040,9 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
     val officialBuyback = market?.antamBuybackIdrPerGram ?: 0.0
     val manualBuyback = parseCurrencyAmount(priceOverrideText)
     val buybackPerGram = if (manualBuyback > 0) manualBuyback else officialBuyback
+    val retailBasePerGram = market?.antamRetailIdrPerGram?.takeIf { it > 0 } ?: 0.0
     val retailPerGram = market?.antamRetailInclTaxIdrPerGram?.takeIf { it > 0 }
-        ?: market?.antamRetailIdrPerGram?.takeIf { it > 0 } ?: 0.0
+        ?: retailBasePerGram
     val ownedGrams = goldGramsText.trim().replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0
     val goldResult = ZakatCalculator.evaluateGold(ownedGrams, buybackPerGram, haulComplete)
     val nisabGrams = goldResult.nisabGrams
@@ -1084,30 +1085,40 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
         }
 
         if (mode == "emas") {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("REFERENSI HARGA ANTAM · INDONESIA", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .8.sp)
+                    Text("REFERENSI HARGA ANTAM · INDONESIA", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .8.sp)
                     Text(
                         if (retailPerGram > 0) "${rupiah(retailPerGram.toLong())} / gram"
                         else "Harga ritel belum tersedia",
-                        color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
+                        color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
                     )
-                    Text("Harga jual ritel ANTAM 1 gram (referensi, dapat berubah)", color = Color.White.copy(.75f), fontSize = 9.sp)
-                    Divider(color = Color.White.copy(.2f))
+                    Text(
+                        if (retailBasePerGram > 0) "Harga dasar ${rupiah(retailBasePerGram.toLong())} + estimasi PPh 22 0,25% (NPWP)"
+                        else "Harga jual ritel ANTAM 1 gram belum tersedia",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
+                    )
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text(
                         if (buybackPerGram > 0) "Buyback ANTAM: ${rupiah(buybackPerGram.toLong())} / gram"
                         else "Harga buyback belum berhasil dimuat",
-                        color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
                         if (nisabValue > 0) "Nilai nisab 85 gram: ${rupiah(nisabValue)}"
                         else "Nilai nisab menunggu harga buyback",
-                        color = Color.White.copy(.8f), fontSize = 10.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp
                     )
                     Text(
-                        "Sumber: Logam Mulia ANTAM · ${market?.antamUpdatedAt?.ifBlank { "waktu pengambilan tidak tersedia" } ?: "menunggu data"}",
-                        color = Color.White.copy(.65f), fontSize = 8.sp
+                        when {
+                            market == null -> "Sumber: menunggu feed ANTAM"
+                            market.antamStale -> "Peringatan: data harga ANTAM berusia lebih dari 36 jam · ${market.antamPriceDate}"
+                            else -> "Sumber: Logam Mulia ANTAM · ${market.antamSourceUpdatedAt.ifBlank { market.antamPriceDate }}"
+                        },
+                        color = if (market?.antamStale == true) Gold else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 8.sp
                     )
+                    Text("PPh 22 pembelian estimasi 0,25% dengan NPWP / 0,5% tanpa NPWP. Buyback di atas Rp10 juta: estimasi 1,5% / 3%. Nilai zakat memakai buyback bruto, bukan nilai setelah pajak.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 }
             }
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -1179,11 +1190,11 @@ private fun ZakatScreen(entries: List<MoneyEntry>, market: MarketData?) {
                 color = Muted, fontSize = 9.sp
             )
         } else {
-            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("STANDAR BAZNAS TAHUN 2026", color = Color.White.copy(.72f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    Text(rupiah(annualIncomeNisab), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("Nisab penghasilan per tahun · Rp7.640.144 per bulan", color = Color.White.copy(.8f), fontSize = 10.sp)
+                    Text("STANDAR BAZNAS TAHUN 2026", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(rupiah(annualIncomeNisab), color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Nisab penghasilan per tahun · Rp7.640.144 per bulan", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -1393,13 +1404,13 @@ private fun ProfileScreen(
     var menu by remember { mutableStateOf(false) }
     ScreenColumn {
         SectionTitle("Profil & pengaturan", "Preferensi dan progres akun Arthanesia")
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BrandDark)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Row(Modifier.fillMaxWidth().padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
                 WalletLogo(52.dp); Spacer(Modifier.width(13.dp))
                 Column {
-                    Text(owner, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text(business, color = Color.White.copy(.78f), fontSize = 10.sp)
-                    Text("Pemilik usaha", color = Color.White.copy(.75f), fontSize = 9.sp)
+                    Text(owner, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(business, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                    Text("Pemilik usaha", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
                 }
             }
         }
