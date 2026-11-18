@@ -32,8 +32,9 @@ internal data class MarketData(
     val antamPriceDate: String = "",
     val antamSourceUpdatedAt: String = "",
     val antamStale: Boolean = true,
-    val pph22PurchaseWithNpwp: Double = 0.0025,
-    val pph22PurchaseWithoutNpwp: Double = 0.005,
+    val pph22PurchaseFinalConsumer: Double = 0.0,
+    val pph22PurchaseMerchantWithNpwp: Double = 0.0025,
+    val pph22PurchaseMerchantWithoutNpwp: Double = 0.005,
     val pph22BuybackThreshold: Long = 10_000_000L,
     val pph22BuybackWithNpwp: Double = 0.015,
     val pph22BuybackWithoutNpwp: Double = 0.03
@@ -349,8 +350,9 @@ internal object SupabaseApi {
             antamPriceDate = antam.optString("priceDate", ""),
             antamSourceUpdatedAt = antam.optString("sourceUpdatedAt", ""),
             antamStale = antam.optBoolean("stale", true),
-            pph22PurchaseWithNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22WithNpwp", 0.0025) ?: 0.0025,
-            pph22PurchaseWithoutNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22WithoutNpwp", 0.005) ?: 0.005,
+            pph22PurchaseFinalConsumer = antam.optJSONObject("tax")?.optDouble("purchasePph22FinalConsumer", 0.0) ?: 0.0,
+            pph22PurchaseMerchantWithNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22MerchantWithNpwp", 0.0025) ?: 0.0025,
+            pph22PurchaseMerchantWithoutNpwp = antam.optJSONObject("tax")?.optDouble("purchasePph22MerchantWithoutNpwp", 0.005) ?: 0.005,
             pph22BuybackThreshold = antam.optJSONObject("tax")?.optLong("buybackPph22ThresholdIdr", 10_000_000L) ?: 10_000_000L,
             pph22BuybackWithNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithNpwp", 0.015) ?: 0.015,
             pph22BuybackWithoutNpwp = antam.optJSONObject("tax")?.optDouble("buybackPph22WithoutNpwp", 0.03) ?: 0.03
