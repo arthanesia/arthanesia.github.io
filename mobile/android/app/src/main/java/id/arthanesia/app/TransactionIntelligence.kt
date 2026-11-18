@@ -11,18 +11,21 @@ internal data class ParsedTransaction(
 )
 
 /**
- * Small, deterministic on-device parser. It never saves a transaction by itself;
- * the user reviews the suggested fields in the transaction form before saving.
+ * Deterministic parser for offline voice and receipt suggestions.
+ * OCR totals are only accepted when a clear total label is present: product prices,
+ * barcodes and payment references are never silently treated as the transaction total.
+ * The user always reviews the result before saving.
  */
 internal object TransactionIntelligence {
     private val locale = Locale("id", "ID")
 
     private val receiptTotalLabels = Regex(
-        "(?i)(grand\\s*total|\\btotal(?:\\s*(?:bayar|belanja|tagihan))?\\b|\\bjumlah(?:\\s*bayar)?\\b|\\bamount\\s*due\\b|\\bnet\\s*payable\\b|\\btagihan\\b)"
+        "(?i)(grand\\s*total|total\\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\\s*(?:bayar|dibayar)|amount\\s*due|net\\s*payable|\\btagihan\\b|\\btotal\\b)"
     )
+    private val subtotalLabels = Regex("(?i)(sub\\s*total|subtotal|total\\s*sebelum)")
     private val numericAmount = Regex("(?i)(?:rp\\.?\\s*)?([0-9][0-9.,]*)")
     private val ignoredReceiptLine = Regex(
-        "(?i)(subtotal|sub\\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|debit|kredit|cashier|kasir|invoice|struk|receipt|nomor|no\\.?)"
+        "(?i)(subtotal|sub\\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|debit|kredit|cashier|kasir|invoice|struk|receipt|nomor|no\\.?|telp|telepon|alamat|www\\.|http)"
     )
     private val numberWords = setOf(
         "nol", "kosong", "se", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan",
@@ -45,34 +48,39 @@ internal object TransactionIntelligence {
     }
 
     fun fromReceipt(ocrText: String): ParsedTransaction {
-        val lines = ocrText.lines().map { it.trim() }.filter { it.isNotBlank() }
+        val lines = ocrText.lines().map { it.trim().replace(Regex("\\s+"), " ") }.filter { it.isNotBlank() }
         val amount = parseReceiptAmount(lines)
-        val detailLines = lines.filter { line ->
-            line.count { it.isLetter() } >= 3 &&
-                !receiptTotalLabels.containsMatchIn(line) &&
-                !ignoredReceiptLine.containsMatchIn(line)
-        }
         val fullText = lines.joinToString(" ")
-        val itemLines = detailLines
-            .filter { numericAmount.containsMatchIn(it) }
+        val itemLines = lines.asSequence()
+            .filter { line ->
+                line.count { it.isLetter() } >= 3 &&
+                    numericAmount.containsMatchIn(line) &&
+                    !receiptTotalLabels.containsMatchIn(line) &&
+                    !ignoredReceiptLine.containsMatchIn(line)
+            }
             .map(::cleanReceiptLine)
-            .filter { it.isNotBlank() }
+            .filter { it.length >= 3 }
             .distinct()
-            .take(5)
-        val fallbackItems = if (itemLines.isEmpty()) {
-            detailLines.map(::cleanReceiptLine).filter { it.isNotBlank() }.take(3)
-        } else itemLines
+            .take(8)
+            .toList()
+        val fallbackItems = if (itemLines.isNotEmpty()) itemLines else lines.asSequence()
+            .filter { it.count { ch -> ch.isLetter() } >= 5 && !ignoredReceiptLine.containsMatchIn(it) && !receiptTotalLabels.containsMatchIn(it) }
+            .map(::cleanReceiptLine)
+            .filter { it.length >= 3 }
+            .distinct()
+            .take(3)
+            .toList()
         val title = fallbackItems.joinToString(", ").ifBlank { "Pembelian dari struk" }
         return ParsedTransaction(
             income = false,
             amount = amount,
-            title = title.take(120),
+            title = title.take(160),
             category = categoryFor(fullText, false)
         )
     }
 
     fun parseAmount(text: String): Long? {
-        val scaled = Regex("""(?i)([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b""")
+        val scaled = Regex("""(?i)([0-9][0-9.,]*)\\s*(rb|ribu|jt|juta|miliar|milyar)\\b""")
             .findAll(text)
             .lastOrNull()
         if (scaled != null) {
@@ -85,7 +93,7 @@ internal object TransactionIntelligence {
             return runCatching { Math.multiplyExact(base, multiplier) }.getOrNull()
         }
         val lines = text.lines().filter { it.isNotBlank() }
-        val labeled = lines.filter { receiptTotalLabels.containsMatchIn(it) }
+        val labeled = lines.filter { receiptTotalLabels.containsMatchIn(it) && !subtotalLabels.containsMatchIn(it) }
         for (line in labeled.asReversed()) {
             val value = numericAmount.findAll(line).lastOrNull()?.groupValues?.getOrNull(1)?.let(::digitsToLong)
             if (value != null && value > 0) return value
@@ -96,14 +104,26 @@ internal object TransactionIntelligence {
     }
 
     private fun parseReceiptAmount(lines: List<String>): Long? {
-        for (line in lines.filter { receiptTotalLabels.containsMatchIn(it) }.asReversed()) {
+        var bestPriority = 0
+        var bestIndex = -1
+        var bestAmount: Long? = null
+        lines.forEachIndexed { index, line ->
+            if (subtotalLabels.containsMatchIn(line)) return@forEachIndexed
+            val lower = line.lowercase(locale)
+            val priority = when {
+                Regex("(?i)grand\\s*total|total\\s*(?:pembayaran|bayar|akhir)|jumlah\\s*(?:dibayar|bayar)|amount\\s*due|net\\s*payable").containsMatchIn(lower) -> 3
+                Regex("(?i)\\btotal\\b|\\btagihan\\b").containsMatchIn(lower) -> 2
+                else -> 0
+            }
+            if (priority == 0) return@forEachIndexed
             val value = numericAmount.findAll(line).lastOrNull()?.groupValues?.getOrNull(1)?.let(::digitsToLong)
-            if (value != null && value > 0) return value
+            if (value != null && value > 0 && (priority > bestPriority || (priority == bestPriority && index > bestIndex))) {
+                bestPriority = priority
+                bestIndex = index
+                bestAmount = value
+            }
         }
-        val candidates = lines.filter { !ignoredReceiptLine.containsMatchIn(it) }
-            .flatMap { line -> numericAmount.findAll(line).mapNotNull { it.groupValues.getOrNull(1)?.let(::digitsToLong) }.toList() }
-            .filter { it > 0 }
-        return candidates.maxOrNull()
+        return bestAmount
     }
 
     private fun digitsToLong(raw: String): Long? = raw.filter { it.isDigit() }.toLongOrNull()
@@ -122,7 +142,10 @@ internal object TransactionIntelligence {
     }
 
     private fun cleanReceiptLine(raw: String): String {
-        var value = raw.replace(numericAmount, " ")
+        var value = raw.replace(Regex("(?i)\\b(?:rp|idr)\\b"), " ")
+        value = value.replace(Regex("(?i)\\b[0-9][0-9.,]*\\b"), " ")
+        value = value.replace(Regex("(?i)\\b(kg|gr|gram|g|ml|liter|ltr|pcs|pc|pack|dus|btl|botol|qty)\\b"), " ")
+        value = value.replace(Regex("[|:]+"), " ")
         value = value.replace(Regex("\\s+"), " ").trim(' ', '.', ',', '-', ':', '|')
         return value.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
     }
@@ -135,7 +158,7 @@ internal object TransactionIntelligence {
             } else "Penjualan"
         }
         return when {
-            listOf("bahan baku", "tepung", "gula", "beras", "kopi", "susu", "telur", "daging", "sayur", "buah", "bumbu", "kemasan", "plastik", "biji kopi", "roti").any { value.contains(it) } -> "Bahan Baku"
+            listOf("bahan baku", "tepung", "terigu", "gula", "beras", "kopi", "susu", "telur", "daging", "sayur", "buah", "bumbu", "kemasan", "plastik", "biji kopi", "roti", "minyak goreng").any { value.contains(it) } -> "Bahan Baku"
             listOf("bensin", "solar", "bbm", "transport", "parkir", "tol", "ojek", "grab", "gojek", "kurir", "ongkir").any { value.contains(it) } -> "Transportasi"
             listOf("listrik", "air", "internet", "wifi", "telepon", "pulsa", "gas", "pln").any { value.contains(it) } -> "Utilitas"
             listOf("gaji", "upah", "honor", "lembur", "pegawai", "karyawan").any { value.contains(it) } -> "Gaji"
