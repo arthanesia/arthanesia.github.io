@@ -359,7 +359,7 @@ $("authForm").addEventListener("submit",async e=>{
  }catch(error){msg("authMessage",error.message||"Autentikasi gagal.")}
  finally{button.disabled=false;button.textContent=signup?"Daftar akun":"Masuk";}
 });
-$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);$("password").autocomplete=signup?"new-password":"current-password";});
+$("switchAuth").addEventListener("click",()=>{signup=!signup;$("authTitle").textContent=signup?"Buat akun Arthanesia":"Masuk ke Arthanesia";$("authSubmit").textContent=signup?"Daftar akun":"Masuk";$("switchAuth").textContent=signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar";$("signupFields").classList.toggle("hidden",!signup);$("forgotPassword").classList.toggle("hidden",signup);$("password").autocomplete=signup?"new-password":"current-password";$("password").type="password";$("togglePassword").textContent="Tampilkan";});
 $("togglePassword").addEventListener("click",()=>{const input=$("password"),showing=input.type==="password";input.type=showing?"text":"password";$("togglePassword").textContent=showing?"Sembunyikan":"Tampilkan";$("togglePassword").setAttribute("aria-label",showing?"Sembunyikan password":"Tampilkan password");});
 $("toggleNewPassword").addEventListener("click",()=>{const input=$("newPassword"),showing=input.type==="password";input.type=showing?"text":"password";$("toggleNewPassword").textContent=showing?"Sembunyikan":"Tampilkan";});
 $("forgotPassword").addEventListener("click",async()=>{
@@ -442,7 +442,15 @@ async function runAiAnalysis(question){
  if($("aiStatus"))$("aiStatus").textContent="Mengirim ringkasan transaksi ke layanan AI cloud...";
  try{
   const {data,error}=await sb.functions.invoke("artha-assistant",{body:{question}});
-  if(error)throw error;if(data?.error)throw new Error(data.error);
+  if(error){
+   let detail=error.message||"AI online belum tersedia.";
+   const response=error.context;
+   if(response&&typeof response.clone==="function"){
+    try{const payload=await response.clone().json();detail=payload.error||payload.message||detail}catch(_){}
+   }
+   throw new Error(detail);
+  }
+  if(data?.error)throw new Error(data.error);
   addBubble(data.answer||"AI online belum memberikan jawaban.","ai");
   if($("aiStatus"))$("aiStatus").textContent="Terhubung · "+(data.provider||"AI cloud")+" · "+(data.transactionCount??rows.length)+" transaksi dianalisis";
  }catch(error){
