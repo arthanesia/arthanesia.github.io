@@ -12,6 +12,10 @@ assert.ok(html.includes('sb.auth.resend({type:"signup"'), "web app must support 
 assert.ok(!html.includes('id="goldGrams"') && !html.includes('id="goldBuybackManual"'), "gold ownership and manual buyback fields must be removed");
 assert.ok(html.includes('resetPasswordForEmail'), "web login must expose password recovery");
 assert.ok(html.includes('PASSWORD_RECOVERY'), "web app must handle the password recovery callback");
+assert.ok(html.includes('function showPasswordRecovery()'), "password recovery callback must reveal the reset form");
+assert.ok(html.includes('sb?.auth.onAuthStateChange(handleAuthStateChange);'), "auth session handling must use one state listener");
+assert.ok(!html.includes('sb?.auth.getSession().then('), "parallel getSession entry must not race the recovery callback");
+assert.ok(html.includes('function shouldEnterAppFromAuthEvent('), "auth event entry rules must be testable");
 assert.ok(html.includes('identities.length===0'), "duplicate email sign-up must be recognized");
 assert.ok(!html.includes('id="aiConsent"'), "AI analysis must not require per-request consent checkbox");
 
@@ -20,6 +24,16 @@ for (const [index, match] of inlineScripts.entries()) {
 }
 
 const appScript = inlineScripts.map(match => match[1]).join("\n");
+const authRuleMatch = appScript.match(/function shouldEnterAppFromAuthEvent\\(event,session,isRecovering\\)\\{[\\s\\S]*?\\}/);
+assert.ok(authRuleMatch, "auth recovery state rule must be present");
+const authSandbox = {};
+vm.runInNewContext(authRuleMatch[0] + "\nthis.authRule = shouldEnterAppFromAuthEvent;", authSandbox);
+assert.equal(authSandbox.authRule("INITIAL_SESSION", { user: {} }, false), true, "normal saved sessions should enter the app");
+assert.equal(authSandbox.authRule("SIGNED_IN", { user: {} }, false), true, "normal sign-ins should enter the app");
+assert.equal(authSandbox.authRule("INITIAL_SESSION", { user: {} }, true), false, "recovery sessions must not be redirected into the app");
+assert.equal(authSandbox.authRule("SIGNED_IN", { user: {} }, true), false, "recovery mode must not be overridden by a sign-in callback");
+assert.equal(authSandbox.authRule("PASSWORD_RECOVERY", { user: {} }, false), false, "recovery events must render the reset form, not the app");
+assert.equal(authSandbox.authRule("INITIAL_SESSION", null, false), false, "empty sessions must not enter the app");
 const parserStart = appScript.indexOf("function categoryFor");
 const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
@@ -125,4 +139,4 @@ incomeZakat = calculateIncomeZakat(5000000, 91681728);
 assert.equal(incomeZakat.basis, "annual", "variable income can qualify on the annual threshold");
 assert.equal(incomeZakat.zakatAmount, 2292043);
 
-console.log("PWA tests passed: voice, OCR totals, zakat nisab/haul, income thresholds.");
+console.log("PWA tests passed: auth recovery state, voice, OCR totals, zakat nisab/haul, income thresholds.");
