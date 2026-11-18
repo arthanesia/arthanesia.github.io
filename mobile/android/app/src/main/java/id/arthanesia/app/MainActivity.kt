@@ -49,11 +49,11 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlin.math.min
 
-private val Brand = Color(0xFF5B55ED)
-private val BrandDark = Color(0xFF302B9A)
-private val Muted = Color(0xFF858DA7)
-private val Green = Color(0xFF159B72)
-private val Red = Color(0xFFDB6475)
+private val Brand = Color(0xFF0070BA)
+private val BrandDark = Color(0xFF003087)
+private val Muted = Color(0xFF60758B)
+private val Green = Color(0xFF008A68)
+private val Red = Color(0xFFD9485F)
 private val Gold = Color(0xFFC58B34)
 private fun rupiah(value: Long): String =
     NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(value).replace(",00", "")
@@ -78,8 +78,8 @@ private enum class Page(val label: String) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(246, 247, 252)
-        window.navigationBarColor = android.graphics.Color.rgb(246, 247, 252)
+        window.statusBarColor = android.graphics.Color.rgb(245, 248, 251)
+        window.navigationBarColor = android.graphics.Color.rgb(245, 248, 251)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility =
             android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
@@ -112,6 +112,7 @@ private fun ArthanesiaApp() {
     var showGoal by remember { mutableStateOf(false) }
     var voiceDraft by remember { mutableStateOf("") }
     var parsedAmount by remember { mutableStateOf("") }
+    var suggestedCategory by remember { mutableStateOf("Penjualan") }
     var pendingPdf by remember { mutableStateOf<ByteArray?>(null) }
     var pendingCsv by remember { mutableStateOf<ByteArray?>(null) }
     val pdfSaveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
@@ -146,24 +147,29 @@ private fun ArthanesiaApp() {
     val expenseTotal = entries.filter { !it.income }.sumOf { it.amount }
     val balance = incomeTotal - expenseTotal
     val colors = if (dark) darkColorScheme(
-        primary = Color(0xFF8E89FF), secondary = Color(0xFF75D6B4),
-        background = Color(0xFF111426), surface = Color(0xFF191D32),
-        onBackground = Color(0xFFF0F1FB), onSurface = Color(0xFFF0F1FB),
-        surfaceVariant = Color(0xFF252A43), onSurfaceVariant = Color(0xFFB2B8D0)
+        primary = Color(0xFF63B8EE), secondary = Color(0xFF62D2B0),
+        background = Color(0xFF0C1928), surface = Color(0xFF14263A),
+        onBackground = Color(0xFFF2F7FC), onSurface = Color(0xFFF2F7FC),
+        surfaceVariant = Color(0xFF20364D), onSurfaceVariant = Color(0xFFB8C8D8)
     ) else lightColorScheme(
-        primary = Brand, secondary = Green, background = Color(0xFFF6F7FC),
-        surface = Color.White, onBackground = Color(0xFF202440),
-        onSurface = Color(0xFF202440), surfaceVariant = Color(0xFFF0F1F8),
+        primary = Brand, secondary = Green, background = Color(0xFFF5F8FB),
+        surface = Color.White, onBackground = Color(0xFF102A43),
+        onSurface = Color(0xFF102A43), surfaceVariant = Color(0xFFEAF3FA),
         onSurfaceVariant = Muted
     )
 
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
         if (!spoken.isNullOrBlank()) {
-            initialIncome = !(spoken.contains("pengeluaran", true) || spoken.contains("beli", true) || spoken.contains("bayar", true) || spoken.contains("belanja", true))
-            voiceDraft = spoken
-            parsedAmount = parseAmountFromText(spoken)?.toString() ?: ""
+            val parsed = TransactionIntelligence.fromVoice(spoken)
+            initialIncome = parsed.income
+            voiceDraft = parsed.title
+            parsedAmount = parsed.amount?.toString() ?: ""
+            suggestedCategory = parsed.category
             showTransaction = true
+            if (parsed.amount == null) {
+                Toast.makeText(context, "Jenis dan kategori dikenali. Periksa lalu isi nominalnya.", Toast.LENGTH_LONG).show()
+            }
         }
     }
     val receiptLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -172,12 +178,18 @@ private fun ArthanesiaApp() {
                 .onSuccess { image ->
                     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(image)
                         .addOnSuccessListener { result ->
-                            val lines = result.text.lines().filter { it.isNotBlank() }
-                            voiceDraft = lines.take(3).joinToString(" ").take(100).ifBlank { "Pembelian dari struk" }
-                            parsedAmount = parseAmountFromText(result.text)?.toString() ?: ""
+                            val parsed = TransactionIntelligence.fromReceipt(result.text)
+                            voiceDraft = parsed.title
+                            parsedAmount = parsed.amount?.toString() ?: ""
                             initialIncome = false
+                            suggestedCategory = parsed.category
                             showTransaction = true
-                            if (parsedAmount.isBlank()) Toast.makeText(context, "Teks terbaca. Masukkan nominal secara manual.", Toast.LENGTH_LONG).show()
+                            val feedback = if (parsed.amount == null) {
+                                "Struk terbaca. Nominal perlu diperiksa dan diisi manual."
+                            } else {
+                                "Struk terbaca · ${parsed.category} · ${rupiah(parsed.amount)}. Periksa sebelum simpan."
+                            }
+                            Toast.makeText(context, feedback, Toast.LENGTH_LONG).show()
                         }
                         .addOnFailureListener {
                             Toast.makeText(context, "Struk tidak dapat dibaca. Coba foto yang lebih jelas.", Toast.LENGTH_LONG).show()
@@ -374,13 +386,13 @@ private fun ArthanesiaApp() {
     if (showEntryChooser) {
         EntryMethodDialog(
             onDismiss = { showEntryChooser = false },
-            onManual = { showEntryChooser = false; voiceDraft = ""; parsedAmount = ""; showTransaction = true },
+            onManual = { showEntryChooser = false; voiceDraft = ""; parsedAmount = ""; suggestedCategory = if (initialIncome) "Penjualan" else "Lainnya"; showTransaction = true },
             onReceipt = { showEntryChooser = false; receiptLauncher.launch("image/*") },
             onVoice = { showEntryChooser = false; micPermission.launch(Manifest.permission.RECORD_AUDIO) }
         )
     }
     if (showTransaction) {
-        TransactionDialog(initialIncome, voiceDraft, parsedAmount, currency, fxMarketData,
+        TransactionDialog(initialIncome, voiceDraft, parsedAmount, suggestedCategory, currency, fxMarketData,
             onDismiss = { showTransaction = false; voiceDraft = ""; parsedAmount = "" }) {
             val ownerId = cloudSession?.userId ?: return@TransactionDialog
             appDatabase.saveTransaction(it, ownerId)
@@ -413,7 +425,7 @@ private fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFF0EFFF), Color(0xFFFAFBFF))))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFEAF4FB), Color(0xFFFAFCFE))))
     ) {
         val compact = maxWidth < 600.dp
         Column(
@@ -425,6 +437,7 @@ private fun LoginScreen(
             WalletLogo(if (compact) 72.dp else 88.dp)
             Spacer(Modifier.height(12.dp))
             Text("Arthanesia", fontSize = 29.sp, fontWeight = FontWeight.ExtraBold, color = BrandDark)
+            Text("Keuangan usaha, lebih terarah", fontSize = 11.sp, color = Muted)
             Text("KELOLA  ·  RENCANAKAN  ·  TUMBUH", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
             Spacer(Modifier.height(18.dp))
             Card(
@@ -1120,17 +1133,26 @@ private fun parseAmountFromText(text: String): Long? {
 private fun EntryMethodDialog(onDismiss: () -> Unit, onManual: () -> Unit, onReceipt: () -> Unit, onVoice: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Pilih metode pencatatan", fontWeight = FontWeight.Bold) },
+        title = { Text("Catat transaksi", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Pilih cara tercepat. Arthanesia akan mengisi nominal, deskripsi, dan kategori sebagai saran untuk diperiksa.", color = Muted, fontSize = 11.sp)
                 FilledTonalButton(onClick = onReceipt, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.ReceiptLong, null); Spacer(Modifier.width(9.dp)); Text("Foto Struk / OCR")
+                    Icon(Icons.Default.ReceiptLong, null); Spacer(Modifier.width(9.dp))
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("Pindai foto struk", fontWeight = FontWeight.SemiBold)
+                        Text("Baca item, total, dan kategori · tanpa menyimpan foto", fontSize = 9.sp, color = Muted)
+                    }
                 }
                 FilledTonalButton(onClick = onVoice, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Mic, null); Spacer(Modifier.width(9.dp)); Text("Suara / VoiceCash")
+                    Icon(Icons.Default.Mic, null); Spacer(Modifier.width(9.dp))
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("VoiceCash", fontWeight = FontWeight.SemiBold)
+                        Text("Contoh: Pengeluaran 5.000 beli bahan baku", fontSize = 9.sp, color = Muted)
+                    }
                 }
                 OutlinedButton(onClick = onManual, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Edit, null); Spacer(Modifier.width(9.dp)); Text("Manual")
+                    Icon(Icons.Default.Edit, null); Spacer(Modifier.width(9.dp)); Text("Isi manual")
                 }
             }
         },
@@ -1143,6 +1165,7 @@ private fun TransactionDialog(
     initialIncome: Boolean,
     initialDescription: String,
     initialAmount: String,
+    initialCategory: String,
     defaultCurrency: String,
     marketData: MarketData?,
     onDismiss: () -> Unit,
@@ -1151,7 +1174,7 @@ private fun TransactionDialog(
     var income by remember { mutableStateOf(initialIncome) }
     var title by remember { mutableStateOf(initialDescription) }
     var amount by remember { mutableStateOf(initialAmount) }
-    var category by remember { mutableStateOf("Penjualan") }
+    var category by remember { mutableStateOf(initialCategory) }
     var selectedCurrency by remember { mutableStateOf(defaultCurrency) }
     var categoryExpanded by remember { mutableStateOf(false) }
     var currencyExpanded by remember { mutableStateOf(false) }
@@ -1202,7 +1225,7 @@ private fun TransactionDialog(
                 Box {
                     OutlinedButton(onClick = { categoryExpanded = true }) { Text(category); Icon(Icons.Default.ExpandMore, null) }
                     DropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
-                        listOf("Penjualan", "Operasional", "Marketing", "Transportasi", "Gaji", "Investasi", "Lainnya").forEach {
+                        listOf("Penjualan", "Pendapatan Jasa", "Bahan Baku", "Operasional", "Perlengkapan", "Transportasi", "Utilitas", "Marketing", "Gaji", "Investasi", "Lainnya").forEach {
                             DropdownMenuItem(text = { Text(it) }, onClick = { category = it; categoryExpanded = false })
                         }
                     }
