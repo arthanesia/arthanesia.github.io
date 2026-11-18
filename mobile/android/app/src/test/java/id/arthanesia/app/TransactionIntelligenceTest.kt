@@ -165,5 +165,41 @@ class TransactionIntelligenceTest {
         assertTrue(above.first)
         assertEquals(2_500_000L, above.second)
     }
-    
+
+    @Test
+    fun receiptReadsTotalOnFollowingLine() {
+        val receipt = """
+            TOKO MAKMUR
+            Tepung Terigu 1 KG
+            Rp 15.000
+            Gula Pasir 1 KG
+            Rp 18.000
+            TOTAL BAYAR
+            Rp 33.000
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(33_000L, result.amount)
+        assertTrue(result.title.contains("Tepung Terigu"))
+        assertTrue(result.title.contains("Gula Pasir"))
+    }
+
+    @Test
+    fun receiptReadsItemPriceOnFollowingLineWithoutMistakingItForTotal() {
+        val receipt = """
+            TOKO MAKMUR
+            Tepung Terigu 1 KG
+            Rp 15.000
+            Gula Pasir 1 KG
+            Rp 18.000
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(null, result.amount)
+        assertTrue(result.title.contains("Tepung Terigu"))
+        assertTrue(result.title.contains("Gula Pasir"))
+    }
+
 }
