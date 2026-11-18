@@ -18,7 +18,7 @@ internal object TransactionIntelligence {
     private val locale = Locale("id", "ID")
 
     private val receiptTotalLabels = Regex(
-        "(?i)(grand\\s*total|total(?:\\s*(?:bayar|belanja|tagihan))?|jumlah(?:\\s*bayar)?|amount\\s*due|net\\s*payable|tagihan)"
+        "(?i)(grand\\s*total|\\btotal(?:\\s*(?:bayar|belanja|tagihan))?\\b|\\bjumlah(?:\\s*bayar)?\\b|\\bamount\\s*due\\b|\\bnet\\s*payable\\b|\\btagihan\\b)"
     )
     private val numericAmount = Regex("(?i)(?:rp\\.?\\s*)?([0-9][0-9.,]*)")
     private val ignoredReceiptLine = Regex(
@@ -135,31 +135,42 @@ internal object TransactionIntelligence {
             .filter { it in numberWords }
             .toList()
         if (tokens.isEmpty()) return null
+
         var total = 0L
-        var current = 0L
+        var group = 0L
+        var pending = 0L
         var foundNumber = false
         for (token in tokens) {
             when (token) {
-                "nol", "kosong" -> { current += 0; foundNumber = true }
-                "se", "satu" -> { current += 1; foundNumber = true }
-                "dua" -> { current += 2; foundNumber = true }
-                "tiga" -> { current += 3; foundNumber = true }
-                "empat" -> { current += 4; foundNumber = true }
-                "lima" -> { current += 5; foundNumber = true }
-                "enam" -> { current += 6; foundNumber = true }
-                "tujuh" -> { current += 7; foundNumber = true }
-                "delapan" -> { current += 8; foundNumber = true }
-                "sembilan" -> { current += 9; foundNumber = true }
-                "sepuluh" -> { current += 10; foundNumber = true }
-                "sebelas" -> { current += 11; foundNumber = true }
-                "belas" -> { current = (if (current == 0L) 1L else current) + 10L; foundNumber = true }
-                "puluh" -> { current = (if (current == 0L) 1L else current) * 10L; foundNumber = true }
-                "ratus", "seratus" -> { current = (if (current == 0L) 1L else current) * 100L; foundNumber = true }
-                "seribu", "ribu" -> { total += (if (current == 0L) 1L else current) * 1_000L; current = 0; foundNumber = true }
-                "sejuta", "juta" -> { total += (if (current == 0L) 1L else current) * 1_000_000L; current = 0; foundNumber = true }
-                "miliar", "milyar" -> { total += (if (current == 0L) 1L else current) * 1_000_000_000L; current = 0; foundNumber = true }
+                "nol", "kosong" -> { foundNumber = true }
+                "se", "satu" -> { pending += 1; foundNumber = true }
+                "dua" -> { pending += 2; foundNumber = true }
+                "tiga" -> { pending += 3; foundNumber = true }
+                "empat" -> { pending += 4; foundNumber = true }
+                "lima" -> { pending += 5; foundNumber = true }
+                "enam" -> { pending += 6; foundNumber = true }
+                "tujuh" -> { pending += 7; foundNumber = true }
+                "delapan" -> { pending += 8; foundNumber = true }
+                "sembilan" -> { pending += 9; foundNumber = true }
+                "sepuluh" -> { pending += 10; foundNumber = true }
+                "sebelas" -> { pending += 11; foundNumber = true }
+                "belas" -> { group += (if (pending == 0L) 1L else pending) + 10L; pending = 0; foundNumber = true }
+                "puluh" -> { group += (if (pending == 0L) 1L else pending) * 10L; pending = 0; foundNumber = true }
+                "ratus", "seratus" -> { group += (if (pending == 0L) 1L else pending) * 100L; pending = 0; foundNumber = true }
+                "seribu", "ribu" -> {
+                    total += (group + if (pending == 0L) 1L else pending) * 1_000L
+                    group = 0; pending = 0; foundNumber = true
+                }
+                "sejuta", "juta" -> {
+                    total += (group + if (pending == 0L) 1L else pending) * 1_000_000L
+                    group = 0; pending = 0; foundNumber = true
+                }
+                "miliar", "milyar" -> {
+                    total += (group + if (pending == 0L) 1L else pending) * 1_000_000_000L
+                    group = 0; pending = 0; foundNumber = true
+                }
             }
         }
-        return if (foundNumber) (total + current).takeIf { it > 0 } else null
+        return if (foundNumber) (total + group + pending).takeIf { it > 0 } else null
     }
 }
