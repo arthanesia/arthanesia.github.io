@@ -17,7 +17,7 @@ Arthanesia is a financial-management product for Indonesian small businesses. Th
 
 The native Android application uses Kotlin + Jetpack Compose, SQLite for offline persistence, and Supabase Auth/REST for account sessions and transaction sync.
 
-Version: **0.6.2** (debug / early-access build).
+Version: **0.6.3** (debug / early-access build).
 
 Included:
 - Email/password signup and login.
@@ -26,8 +26,9 @@ Included:
 - Offline-first transaction sync to Supabase.
 - Transaction currency selection: IDR, USD, EUR, GBP, JPY, SGD, AUD, MYR.
 - Original amount, FX rate snapshot, and IDR base value stored separately.
-- Voice input using Android speech recognition.
-- Receipt image OCR using on-device ML Kit.
+- VoiceCash using Android speech recognition with structured amount, description, transaction type, and category suggestions.
+- Receipt OCR using on-device ML Kit with total, item description, and expense-category suggestions; receipt photos are processed locally and are not saved as transaction attachments.
+- Suggested voice/OCR transaction fields are reviewed by the user before saving.
 - Professional A4 bookkeeping PDF, Android print dialog, and CSV export.
 - Cashflow summary and transaction-derived seven-day candlestick chart.
 - Annual tax estimate and configured 250g gold nisab zakat indicator.
@@ -43,7 +44,7 @@ gradle --no-daemon -p mobile/android :app:assembleDebug
 APK output:
 `mobile/android/app/build/outputs/apk/debug/app-debug.apk`
 
-GitHub Actions also publishes `Arthanesia.apk` to the GitHub Release tagged `v0.6.2`.
+GitHub Actions publishes the early-access APK through the repository release workflow.
 
 ## Web app
 
@@ -52,11 +53,12 @@ The installable PWA lives at `app/`. It uses Supabase email/password authenticat
 - Profile and business settings.
 - Transaction entry and history.
 - Currency conversion using the market-data function; historical rate and IDR amount are stored on the transaction.
-- Private receipt upload to the `receipts` storage bucket.
+- In-browser receipt OCR using Tesseract.js; the selected image is processed in the browser and not uploaded or stored as an attachment.
+- VoiceCash via the browser Web Speech API where supported; browser speech recognition may depend on an online recognition service.
 - CSV export and browser print-to-PDF.
 - Consent-gated Artha AI invocation.
 
-The web app is a production MVP, not yet feature parity with every native screen. Browser receipt upload is available; on-device OCR and VoiceCash are currently in the Android app.
+The web app is a production MVP, not yet feature parity with every native screen. Receipt OCR and VoiceCash now provide prefilled transaction suggestions in the browser; Android uses on-device ML Kit OCR and native speech recognition. On both clients, users review suggested values before saving.
 
 ## Supabase production backend
 

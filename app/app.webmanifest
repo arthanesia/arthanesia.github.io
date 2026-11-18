@@ -6,8 +6,8 @@
   "start_url": "/app/",
   "scope": "/app/",
   "display": "standalone",
-  "background_color": "#f6f7fb",
-  "theme_color": "#5b55df",
+  "background_color": "#f4f8fc",
+  "theme_color": "#003087",
   "icons": [
     {"src": "/assets/arthanesia-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
   ]
