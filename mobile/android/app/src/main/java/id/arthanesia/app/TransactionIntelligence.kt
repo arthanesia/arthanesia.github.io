@@ -20,7 +20,7 @@ internal object TransactionIntelligence {
     private val locale = Locale("id", "ID")
 
     private val receiptTotalLabels = Regex(
-        "(?i)(grand\\s*total|total\\s*(?:bayar|pembayaran|akhir|tagihan|belanja|transaksi|payment)|jumlah\\s*(?:bayar|dibayar|pembayaran)|amount\\s*(?:due|payable)|net\\s*payable|\\btagihan\\b|\\btotal\\b)"
+        "(?i)(grand\\\\s*total|total\\\\s*(?:bayar|pembayaran|belanja|transaksi|akhir|tagihan|payment|due|payable)|jumlah\\\\s*(?:bayar|dibayar|pembayaran|tagihan)|amount\\\\s*(?:due|payable)|net\\\\s*payable|\\\\btagihan\\\\b|\\\\btotal\\\\b)"
     )
     private val subtotalLabels = Regex("(?i)(sub\\s*total|subtotal|total\\s*sebelum)")
     private val numericAmount = Regex("(?i)(?:rp\\.?\\s*|idr\\s*)?([0-9][0-9.,Oo]*)")
@@ -111,9 +111,44 @@ internal object TransactionIntelligence {
             normalized.count { it.isDigit() } >= 3
     }
 
+    private fun parseReceiptNumeric(raw: String): Long? {
+        val normalized = raw.replace('O', '0').replace('o', '0')
+        val token = numericAmount.find(normalized)?.groupValues?.getOrNull(1) ?: return null
+        val dot = token.lastIndexOf('.')
+        val comma = token.lastIndexOf(',')
+        val lastSeparator = maxOf(dot, comma)
+        val digits = when {
+            dot >= 0 && comma >= 0 -> {
+                val decimals = token.length - lastSeparator - 1
+                if (decimals in 1..2) token.substring(0, lastSeparator).filter(Char::isDigit)
+                else token.filter(Char::isDigit)
+            }
+            lastSeparator >= 0 -> {
+                val decimals = token.length - lastSeparator - 1
+                when {
+                    decimals == 3 -> token.filter(Char::isDigit)
+                    decimals in 1..2 -> token.substring(0, lastSeparator).filter(Char::isDigit)
+                    else -> token.filter(Char::isDigit)
+                }
+            }
+            else -> token.filter(Char::isDigit)
+        }
+        return digits.toLongOrNull()?.takeIf { it > 0L }
+    }
+
+    private fun isAmountOnlyLine(raw: String): Boolean {
+        val normalized = raw
+            .replace(Regex("(?i)\\b(?:rp\\.?|idr)\\b"), " ")
+            .replace('O', '0')
+            .replace('o', '0')
+            .trim()
+        return normalized.matches(Regex("[0-9][0-9.,\\s]*")) &&
+            normalized.count { it.isDigit() } >= 3
+    }
+
     private fun parseReceiptAmount(lines: List<String>): Long? {
         val priorityLabel = Regex(
-            "(?i)(grand\\s*total|total\\s*(?:pembayaran|bayar|akhir|tagihan|belanja|transaksi|payment)|jumlah\\s*(?:yang\\s*)?(?:dibayar|bayar|pembayaran)|amount\\s*(?:due|payable)|net\\s*payable)"
+            "(?i)(grand\\s*total|total\\s*(?:pembayaran|bayar|belanja|transaksi|akhir|tagihan|payment|due|payable)|jumlah\\s*(?:dibayar|bayar|pembayaran|tagihan)|amount\\s*(?:due|payable)|net\\s*payable)"
         )
         val anyTotalLabel = Regex("(?i)\\btotal\\b|\\btagihan\\b")
         var bestPriority = 0
@@ -121,9 +156,7 @@ internal object TransactionIntelligence {
         var bestAmount: Long? = null
 
         lines.forEachIndexed { index, line ->
-            if (subtotalLabels.containsMatchIn(line) ||
-                (ignoredReceiptLine.containsMatchIn(line) && !receiptTotalLabels.containsMatchIn(line))
-            ) {
+            if (subtotalLabels.containsMatchIn(line) || ignoredReceiptLine.containsMatchIn(line)) {
                 return@forEachIndexed
             }
             val strongLabel = priorityLabel.find(line)
@@ -136,14 +169,13 @@ internal object TransactionIntelligence {
             if (priority == 0 || label == null) return@forEachIndexed
 
             val amountTail = line.substring(label.range.last + 1)
-            // Take the first figure after TOTAL, never trailing card/reference numbers.
-            val sameLineAmount = numericAmount.find(amountTail)?.groupValues?.getOrNull(1)?.let(::digitsToLong)
+            val sameLineAmount = parseReceiptNumeric(amountTail)
             val nextLine = lines.getOrNull(index + 1)
             val nextLineAmount = if (nextLine != null && isAmountOnlyLine(nextLine)) {
-                numericAmount.find(nextLine)?.groupValues?.getOrNull(1)?.let(::digitsToLong)
+                parseReceiptNumeric(nextLine)
             } else null
             val value = sameLineAmount ?: nextLineAmount
-            if (value != null && value > 0 &&
+            if (value != null &&
                 (priority > bestPriority || (priority == bestPriority && index > bestIndex))
             ) {
                 bestPriority = priority
