@@ -203,7 +203,7 @@ function msg(id,text){$(id).textContent=text;show(id)}
 function setPage(name){
   activePage=name;document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);
   document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));
-  if(user&&name==="overview"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:market?"fx":"all",silent:!!market});
+  if(user&&name==="overview"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"all",silent:!!market});
   if(user&&name==="transactions"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"fx",silent:!!market});
   if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}
  }
@@ -241,7 +241,7 @@ function fxFreshnessLabel(){
 function updateFxPresentation(){
  const fx=market?.fx||{},updated=fx.updatedAt||market?.rateUpdatedAt||"";
  if($("marketFxStamp"))$("marketFxStamp").textContent=(updated?formatMarketTime(updated):"Waktu observasi belum tersedia")+" · "+fxFreshnessLabel();
- if($("marketSourceNote"))$("marketSourceNote").innerHTML='<a href="https://exchangerate.dev/" target="_blank" rel="noopener noreferrer">Rates by exchangerate.dev</a> · kurs indikatif, bukan kurs penyelesaian transaksi.';
+ if($("marketSourceNote"))$("marketSourceNote").innerHTML=fx.source==="exchangerate.dev"?'<a href="https://exchangerate.dev/" target="_blank" rel="noopener noreferrer">Rates by exchangerate.dev</a> · kurs indikatif, bukan kurs penyelesaian transaksi.':'Sumber cadangan: open.er-api.com · referensi harian.';
  refreshFxLabel();refreshMarketTools();
 }
 async function loadMarket({scope="all",silent=false}={}){
@@ -348,7 +348,8 @@ async function prepareReceiptImages(file){
  for(let i=0;i<pixels.length;i+=4){const gray=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]),value=Math.max(0,Math.min(255,Math.round((gray-min)*255/range)));grayPixels[i]=value;grayPixels[i+1]=value;grayPixels[i+2]=value;grayPixels[i+3]=255;}
  grayCtx.putImageData(grayFrame,0,0);
  const binaryCanvas=document.createElement("canvas");binaryCanvas.width=canvas.width;binaryCanvas.height=canvas.height;const binaryCtx=binaryCanvas.getContext("2d"),binaryFrame=binaryCtx.createImageData(canvas.width,canvas.height),binaryPixels=binaryFrame.data;
- for(let i=0;i<grayPixels.length;i+=4){const value=grayPixels[i]>threshold?255:0;binaryPixels[i]=value;binaryPixels[i+1]=value;binaryPixels[i+2]=value;binaryPixels[i+3]=255;}binaryCtx.putImageData(binaryFrame,0,0);
+ const adjustedThreshold=Math.round((threshold-min)*255/range);
+ for(let i=0;i<grayPixels.length;i+=4){const value=grayPixels[i]>adjustedThreshold?255:0;binaryPixels[i]=value;binaryPixels[i+1]=value;binaryPixels[i+2]=value;binaryPixels[i+3]=255;}binaryCtx.putImageData(binaryFrame,0,0);
  return {gray:grayCanvas,binary:binaryCanvas};
 }
 function parseReceiptText(rawText){
@@ -358,11 +359,11 @@ function parseReceiptText(rawText){
  const generic=/\btotal\b|\btagihan\b|\bjumlah\b|\bamount\s*due\b/i;
  const amountFrom=line=>{
   const matches=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)];
-  for(const match of matches){const value=normalizeReceiptAmount(match[1]);if(value)return value;}return null;
+  for(const match of matches){if(match[1].replace(/[^0-9]/g,"").length<3)continue;const value=normalizeReceiptAmount(match[1]);if(value)return value;}return null;
  };
  const amountOnly=line=>{
   const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[oO]/g,"0").replace(/[:\-]/g," ").trim();
-  return /^[0-9][0-9.,\s]*$/.test(clean)?normalizeReceiptAmount(clean):null;
+  return /^[0-9][0-9.,\s]*$/.test(clean)&&clean.replace(/[^0-9]/g,"").length>=3?normalizeReceiptAmount(clean):null;
  };
  let best=null,bestPriority=0,bestIndex=-1,bestLabel="",bestLine="";
  lines.forEach((line,index)=>{
