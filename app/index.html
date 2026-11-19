@@ -234,7 +234,7 @@ function formatMarketTime(value){
 function fxFreshnessLabel(){
  const fx=market?.fx||{},delay=Number(fx.delaySeconds||0);
  if(fx.stale)return "Data kurs tertunda";
- if(fx.source==="open.er-api.com")return "Fallback referensi harian";
+ if(fx.source==="open.er-api.com"||fx.sourceType==="ecb_daily"||fx.sourceType==="market_daily")return "Referensi harian";
  if(fx.source==="exchangerate.dev")return delay>0?"Intraday · delay "+Math.ceil(delay/60)+" menit":"Intraday · pasar";
  return "Kurs referensi";
 }
