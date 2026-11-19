@@ -356,6 +356,14 @@ private fun ArthanesiaApp() {
                         when (page) {
                             Page.HOME -> HomeScreen(owner, business, balance, incomeTotal, expenseTotal, entries,
                                 syncStatus = syncStatus,
+                                market = fxMarketData,
+                                onRefreshMarket = {
+                                    coroutineScope.launch {
+                                        runCatching { SupabaseApi.fetchMarketData() }
+                                            .onSuccess { fxMarketData = it }
+                                            .onFailure { Toast.makeText(context, "Kurs belum dapat diperbarui.", Toast.LENGTH_SHORT).show() }
+                                    }
+                                },
                                 onAdd = { initialIncome = it; showEntryChooser = true; voiceDraft = ""; parsedAmount = "" },
                                 onVoice = { micPermission.launch(Manifest.permission.RECORD_AUDIO) },
                                 onNavigate = { page = it })
@@ -650,7 +658,8 @@ private fun MetricCard(title: String, value: String, icon: androidx.compose.ui.g
 
 @Composable
 private fun HomeScreen(owner: String, business: String, balance: Long, income: Long, expense: Long,
-    entries: List<MoneyEntry>, syncStatus: String, onAdd: (Boolean) -> Unit, onVoice: () -> Unit, onNavigate: (Page) -> Unit) {
+    entries: List<MoneyEntry>, syncStatus: String, market: MarketData?, onRefreshMarket: () -> Unit,
+    onAdd: (Boolean) -> Unit, onVoice: () -> Unit, onNavigate: (Page) -> Unit) {
     ScreenColumn {
         Column {
             Text("BUSINESS OVERVIEW", fontSize = 9.sp, color = Brand, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.4.sp)
@@ -696,6 +705,7 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
             QuickAction("Analitik", Icons.Default.Insights, Green, Modifier.weight(1f)) { onNavigate(Page.ANALYTICS) }
             QuickAction("Tanya AI", Icons.Default.AutoAwesome, Gold, Modifier.weight(1f)) { onNavigate(Page.ASSISTANT) }
         }
+        FxConverterCard(market = market, onRefresh = onRefreshMarket)
         Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 val score = (50 + (if (entries.size >= 5) 15 else entries.size * 3) + (if (balance >= 0 && entries.isNotEmpty()) 20 else 0) + (if (income > 0) 15 else 0)).coerceIn(0, 100)
@@ -723,6 +733,114 @@ private fun HomeScreen(owner: String, business: String, balance: Long, income: L
             else "Pengeluaran melampaui pemasukan. Tinjau biaya operasional dan tunda belanja yang belum mendesak.", Icons.Default.Lightbulb)
         SectionTitle("Transaksi terbaru", trailing = { TextButton(onClick = { onNavigate(Page.TRANSACTIONS) }) { Text("Lihat semua") } })
         entries.take(4).forEach { TransactionRow(it) }
+    }
+}
+
+
+@Composable
+private fun FxConverterCard(market: MarketData?, onRefresh: () -> Unit) {
+    val currencies = listOf("IDR", "USD", "EUR", "GBP", "JPY", "SGD", "AUD", "MYR")
+    var from by remember { mutableStateOf("USD") }
+    var to by remember { mutableStateOf("IDR") }
+    var amount by remember { mutableStateOf("1") }
+    var fromExpanded by remember { mutableStateOf(false) }
+    var toExpanded by remember { mutableStateOf(false) }
+
+    val fromRate = if (from == "IDR") 1.0 else market?.ratesPerIdr?.get(from) ?: 0.0
+    val toRate = if (to == "IDR") 1.0 else market?.ratesPerIdr?.get(to) ?: 0.0
+    val input = parseCurrencyAmount(amount)
+    val converted = if (fromRate > 0.0 && toRate > 0.0) input * toRate / fromRate else null
+    val formatted = converted?.let { value ->
+        if (to == "IDR") rupiah(value.toLong())
+        else to + " " + NumberFormat.getNumberInstance(Locale("id", "ID")).apply {
+            maximumFractionDigits = 2
+            minimumFractionDigits = 0
+        }.format(value)
+    } ?: "—"
+    val observedAt = market?.fxUpdatedAt?.takeIf { it.isNotBlank() }?.let { value ->
+        runCatching {
+            java.time.Instant.parse(value)
+                .atZone(java.time.ZoneId.of("Asia/Jakarta"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy · HH:mm", Locale("id", "ID"))) + " WIB"
+        }.getOrDefault("Waktu pembaruan belum tersedia")
+    } ?: "Menunggu data kurs"
+
+    val sourceLabel = when {
+        market == null -> "Menghubungkan ke sumber kurs"
+        market.fxStale -> "Data kurs tertunda"
+        market.fxSource == "open.er-api.com" -> "Kurs referensi harian"
+        market.fxSourceType == "live" && (market.fxDelaySeconds ?: 0) > 0 ->
+            "Intraday indikatif · jeda " + ((market.fxDelaySeconds ?: 0) / 60).coerceAtLeast(1) + " menit"
+        market.fxSourceType == "live" -> "Intraday indikatif"
+        market.fxSourceType == "ecb_daily" -> "Referensi harian ECB"
+        market.fxSourceType == "market_daily" -> "Referensi pasar harian"
+        else -> "Kurs indikatif"
+    }
+
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Konversi mata uang", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("Kurs indikatif terbaru", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                OutlinedButton(onClick = onRefresh, contentPadding = PaddingValues(horizontal = 11.dp, vertical = 6.dp)) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(5.dp))
+                    Text("Perbarui", fontSize = 10.sp)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { fromExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(from, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.ExpandMore, null)
+                    }
+                    DropdownMenu(expanded = fromExpanded, onDismissRequest = { fromExpanded = false }) {
+                        currencies.forEach { code ->
+                            DropdownMenuItem(text = { Text(code) }, onClick = { from = code; fromExpanded = false })
+                        }
+                    }
+                }
+                Icon(Icons.Default.SwapHoriz, contentDescription = "Tukar mata uang", tint = MaterialTheme.colorScheme.primary)
+                Box(Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { toExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(to, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.ExpandMore, null)
+                    }
+                    DropdownMenu(expanded = toExpanded, onDismissRequest = { toExpanded = false }) {
+                        currencies.forEach { code ->
+                            DropdownMenuItem(text = { Text(code) }, onClick = { to = code; toExpanded = false })
+                        }
+                    }
+                }
+            }
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Jumlah " + from) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            Column(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(13.dp)).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("HASIL KONVERSI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = .6.sp)
+                Text(formatted, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    if (fromRate > 0.0 && toRate > 0.0) {
+                        "1 " + from + " ≈ " + (if (to == "IDR") rupiah((toRate / fromRate).toLong()) else to + " " + NumberFormat.getNumberInstance(Locale("id", "ID")).format(toRate / fromRate))
+                    } else "Pasangan kurs belum tersedia.",
+                    fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(observedAt, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(sourceLabel + " · bukan kurs transaksi bank/kartu", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 
