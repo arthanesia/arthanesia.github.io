@@ -136,16 +136,6 @@ internal object TransactionIntelligence {
         return digits.toLongOrNull()?.takeIf { it > 0L }
     }
 
-    private fun isAmountOnlyLine(raw: String): Boolean {
-        val normalized = raw
-            .replace(Regex("(?i)\\b(?:rp\\.?|idr)\\b"), " ")
-            .replace('O', '0')
-            .replace('o', '0')
-            .trim()
-        return normalized.matches(Regex("[0-9][0-9.,\\s]*")) &&
-            normalized.count { it.isDigit() } >= 3
-    }
-
     private fun parseReceiptAmount(lines: List<String>): Long? {
         val priorityLabel = Regex(
             "(?i)(grand\\s*total|total\\s*(?:pembayaran|bayar|belanja|transaksi|akhir|tagihan|payment|due|payable)|jumlah\\s*(?:dibayar|bayar|pembayaran|tagihan)|amount\\s*(?:due|payable)|net\\s*payable)"
