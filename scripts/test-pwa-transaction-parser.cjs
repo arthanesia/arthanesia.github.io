@@ -37,10 +37,10 @@ assert.equal(authSandbox.authRule("INITIAL_SESSION", null, false), false, "empty
 assert.ok(html.includes('id="marketTarget"'), "converter must support selecting a target currency");
 assert.ok(html.includes('id="fxRefresh"'), "converter must offer manual rate refresh");
 assert.ok(html.includes('id="marketFxStamp"'), "converter must display rate observation time");
-const fxRateHelperSource = appScript.split("\\n").find(line => line.trim().startsWith("function convertCurrencyByIdrRates("));
+const fxRateHelperSource = appScript.split("\n").find(line => line.trim().startsWith("function convertCurrencyByIdrRates("));
 assert.ok(fxRateHelperSource, "FX cross-conversion function must be present");
 const fxSandbox = {};
-vm.runInNewContext(fxRateHelperSource + "\\nthis.convert = convertCurrencyByIdrRates;", fxSandbox);
+vm.runInNewContext(fxRateHelperSource + "\nthis.convert = convertCurrencyByIdrRates;", fxSandbox);
 const sampleRates = { IDR: 1, USD: 0.00006, EUR: 0.000055, SGD: 0.000077 };
 assert.ok(Math.abs(fxSandbox.convert(1, "USD", "IDR", sampleRates) - 16666.6666667) < 0.01, "USD to IDR cross conversion must use the IDR base correctly");
 assert.ok(Math.abs(fxSandbox.convert(250000, "IDR", "SGD", sampleRates) - 19.25) < 0.0001, "IDR to SGD conversion must use the IDR base correctly");
@@ -50,7 +50,7 @@ const parseAmountStart = appScript.indexOf("function parseLocalAmount(");
 const parseAmountEnd = appScript.indexOf("function formatConvertedCurrency(", parseAmountStart);
 assert.ok(parseAmountStart >= 0 && parseAmountEnd > parseAmountStart, "locale-aware converter amount parser must exist");
 const amountSandbox = {};
-vm.runInNewContext(appScript.slice(parseAmountStart, parseAmountEnd) + "\\nthis.parse = parseLocalAmount;", amountSandbox);
+vm.runInNewContext(appScript.slice(parseAmountStart, parseAmountEnd) + "\nthis.parse = parseLocalAmount;", amountSandbox);
 assert.equal(amountSandbox.parse("1.234,56"), 1234.56, "Indonesian decimal input must parse");
 assert.equal(amountSandbox.parse("1,234.56"), 1234.56, "English decimal input must parse");
 
