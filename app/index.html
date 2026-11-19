@@ -301,60 +301,118 @@ function renderZakat(){
  $("incomeZakatStatus").textContent=income.basis==="monthly"?"Nisab bulanan terpenuhi":income.basis==="annual"?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
 }
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
-function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
+function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.classList.toggle("is-error",error);show("txSmartStatus")}
 function categoryFor(text,type="expense"){const t=String(text||"").toLowerCase();if(type==="income")return /jasa|servis|service|konsultasi|desain/.test(t)?"Pendapatan Jasa":"Penjualan";if(/bahan baku|tepung|gula|beras|kopi|susu|telur|daging|sayur|buah|bumbu|kemasan|plastik/.test(t))return "Bahan Baku";if(/bensin|solar|bbm|transport|parkir|tol|ojek|grab|gojek|kurir|ongkir/.test(t))return "Transportasi";if(/listrik|air|internet|wifi|telepon|pulsa|gas|pln/.test(t))return "Utilitas";if(/gaji|upah|honor|lembur|pegawai|karyawan/.test(t))return "Gaji";if(/iklan|ads|promosi|marketing|endorse|brosur|spanduk/.test(t))return "Marketing";if(/mesin|laptop|komputer|investasi|aset|renovasi/.test(t))return "Investasi";if(/alat tulis|atk|perlengkapan|sabun|tisu|kertas|printer/.test(t))return "Perlengkapan";if(/sewa|operasional|administrasi|maintenance|perawatan|kebersihan/.test(t))return "Operasional";return "Lainnya"}
 const numberWords={nol:0,kosong:0,satu:1,se:1,dua:2,tiga:3,empat:4,lima:5,enam:6,tujuh:7,delapan:8,sembilan:9,sepuluh:10,sebelas:11};
 function wordsAmount(input){const words=String(input).toLowerCase().match(/sebelas|sepuluh|sembilan|delapan|tujuh|enam|lima|empat|tiga|dua|satu|se|nol|kosong|seratus|seribu|puluh|belas|ratus|ribu|sejuta|juta|miliar|milyar/g)||[];let total=0,group=0,pending=0,seen=false;for(const w of words){if(w in numberWords){pending+=numberWords[w];seen=true}else if(w==="belas"){group+=(pending||1)+10;pending=0;seen=true}else if(w==="puluh"){group+=(pending||1)*10;pending=0;seen=true}else if(w==="ratus"||w==="seratus"){group+=(pending||1)*100;pending=0;seen=true}else if(w==="seribu"||w==="ribu"){total+=(group+pending||1)*1000;group=0;pending=0;seen=true}else if(w==="sejuta"||w==="juta"){total+=(group+pending||1)*1000000;group=0;pending=0;seen=true}else if(w==="miliar"||w==="milyar"){total+=(group+pending||1)*1000000000;group=0;pending=0;seen=true}}return seen&&total+group+pending>0?total+group+pending:null}
-function parseMoneyText(text){const raw=String(text),scaled=[...raw.matchAll(/([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b/gi)].pop();if(scaled){const base=Number(scaled[1].replace(/[.,]/g,"")),unit=scaled[2].toLowerCase(),factor=unit==="rb"||unit==="ribu"?1000:unit==="jt"||unit==="juta"?1000000:1000000000;return Number.isFinite(base*factor)?base*factor:null}const lines=raw.split(/\n/),labelled=lines.filter(x=>/grand\s*total|\btotal\b|\bjumlah\b|\bamount\s*due\b|\btagihan\b/i.test(x)),source=labelled.length?labelled.join(" "):raw,nums=[...source.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[.,]/g,""))).filter(n=>n>0&&Number.isFinite(n));return nums.length?nums[nums.length-1]:wordsAmount(text)}
+function normalizeReceiptAmount(token){
+ let raw=String(token||"").replace(/[oO]/g,"0").replace(/[^\d.,]/g,"");
+ if(!raw)return null;
+ const separators=(raw.match(/[.,]/g)||[]).length,last=Math.max(raw.lastIndexOf("."),raw.lastIndexOf(",")),decimalDigits=last>=0?raw.length-last-1:0;
+ if(separators===1&&decimalDigits===2)raw=raw.slice(0,last);
+ else if(separators>1&&decimalDigits===2)raw=raw.slice(0,last);
+ else raw=raw.replace(/[.,]/g,"");
+ const number=Number(raw.replace(/\D/g,""));
+ return Number.isFinite(number)&&number>0?Math.round(number):null;
+}
+function parseMoneyText(text){
+ const raw=String(text||""),scaled=[...raw.matchAll(/([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b/gi)].pop();
+ if(scaled){const base=normalizeReceiptAmount(scaled[1]),unit=scaled[2].toLowerCase(),factor=unit==="rb"||unit==="ribu"?1000:unit==="jt"||unit==="juta"?1000000:1000000000;return base?base*factor:null;}
+ const tokens=[...raw.matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)].map(match=>normalizeReceiptAmount(match[1])).filter(Boolean);
+ return tokens.length?tokens[0]:wordsAmount(raw);
+}
 function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),income=/\b(pemasukan|pendapatan|penjualan|menerima|terima|masuk)\b/.test(t)&&!/\b(pengeluaran|beli|membeli|pembelian|bayar|belanja|biaya)\b/.test(t),type=income?"income":"expense",amount=parseMoneyText(raw);let title=raw.replace(/\b(?:rp|rupiah|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(?:nol|kosong|se|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|belas|puluh|ratus|seratus|seribu|ribu|sejuta|juta|miliar|milyar)\b/ig," ").replace(/\b(?:pengeluaran|pemasukan|pendapatan|penjualan|catat|transaksi|sebesar|senilai|sejumlah|nominal|uang)\b/ig," ").replace(/\s+/g," ").trim().replace(/^[,.:;\-]+|[,.:;\-]+$/g,"");if(!title)title=income?"Pemasukan usaha":"Pengeluaran usaha";return {type,amount,title:title.charAt(0).toUpperCase()+title.slice(1),category:categoryFor(t,type)}}
-async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
+async function getOcrWorker(){
+ if(!window.Tesseract)throw new Error("Modul pindai belum termuat. Periksa koneksi lalu muat ulang aplikasi.");
+ if(!ocrWorkerPromise){
+  ocrWorkerPromise=window.Tesseract.createWorker("ind+eng").then(async worker=>{
+   await worker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1",user_defined_dpi:"300"});return worker;
+  }).catch(error=>{ocrWorkerPromise=null;throw error;});
+ }
+ return ocrWorkerPromise;
+}
+async function prepareReceiptImages(file){
+ if(!window.createImageBitmap)throw new Error("Browser belum mendukung pemrosesan foto. Perbarui browser atau isi nominal manual.");
+ const bitmap=await createImageBitmap(file),maxWidth=2400,maxHeight=3600;
+ let scale=Math.min(2.2,maxWidth/bitmap.width,maxHeight/bitmap.height);
+ if(bitmap.width*scale<1500)scale=Math.min(1.8,maxHeight/bitmap.height,1500/bitmap.width);
+ const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+ const ctx=canvas.getContext("2d",{willReadFrequently:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close?.();
+ const frame=ctx.getImageData(0,0,canvas.width,canvas.height),pixels=frame.data,histogram=new Uint32Array(256);let min=255,max=0;
+ for(let i=0;i<pixels.length;i+=4){const gray=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]);histogram[gray]++;if(gray<min)min=gray;if(gray>max)max=gray;}
+ const total=canvas.width*canvas.height;let sum=0;for(let i=0;i<256;i++)sum+=i*histogram[i];
+ let sumB=0,wB=0,maxVariance=0,threshold=150;
+ for(let i=0;i<256;i++){wB+=histogram[i];if(!wB)continue;const wF=total-wB;if(!wF)break;sumB+=i*histogram[i];const variance=wB*wF*Math.pow(sumB/wB-(sum-sumB)/wF,2);if(variance>maxVariance){maxVariance=variance;threshold=i;}}
+ const grayCanvas=document.createElement("canvas");grayCanvas.width=canvas.width;grayCanvas.height=canvas.height;const grayCtx=grayCanvas.getContext("2d"),grayFrame=grayCtx.createImageData(canvas.width,canvas.height),grayPixels=grayFrame.data,range=Math.max(1,max-min);
+ for(let i=0;i<pixels.length;i+=4){const gray=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]),value=Math.max(0,Math.min(255,Math.round((gray-min)*255/range)));grayPixels[i]=value;grayPixels[i+1]=value;grayPixels[i+2]=value;grayPixels[i+3]=255;}
+ grayCtx.putImageData(grayFrame,0,0);
+ const binaryCanvas=document.createElement("canvas");binaryCanvas.width=canvas.width;binaryCanvas.height=canvas.height;const binaryCtx=binaryCanvas.getContext("2d"),binaryFrame=binaryCtx.createImageData(canvas.width,canvas.height),binaryPixels=binaryFrame.data;
+ for(let i=0;i<grayPixels.length;i+=4){const value=grayPixels[i]>threshold?255:0;binaryPixels[i]=value;binaryPixels[i+1]=value;binaryPixels[i+2]=value;binaryPixels[i+3]=255;}binaryCtx.putImageData(binaryFrame,0,0);
+ return {gray:grayCanvas,binary:binaryCanvas};
+}
 function parseReceiptText(rawText){
- const lines=String(rawText||"").split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http|total\s*(?:item|barang|produk|qty)/i;
- const strongTotal=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i;
+ const lines=String(rawText||"").split(/\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean);
+ const ignored=/sub\s*total|discount|diskon|potongan|voucher|kupon|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice\s*(?:no|number)|struk|receipt|telp|telepon|alamat|www\.|https?:|total\s*(?:item|barang|produk|qty|quantity)|jumlah\s*item/i;
+ const strong=/grand\s*total|total\s*(?:bayar|pembayaran|tagihan|akhir|belanja|transaksi|due|payable)|jumlah\s*(?:bayar|dibayar|tagihan)|amount\s*(?:due|payable)|net\s*payable/i;
+ const generic=/\btotal\b|\btagihan\b|\bjumlah\b|\bamount\s*due\b/i;
  const amountFrom=line=>{
-  const match=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)].find(m=>m[1].replace(/[^0-9Oo]/g,"").length>=3);
-  if(!match)return null;
-  const value=Number(match[1].replace(/[Oo]/g,"0").replace(/[^0-9]/g,""));
-  return Number.isFinite(value)&&value>0?value:null;
+  const matches=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)];
+  for(const match of matches){const value=normalizeReceiptAmount(match[1]);if(value)return value;}return null;
  };
  const amountOnly=line=>{
-  const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[Oo]/g,"0").trim();
-  return /^[0-9][0-9.,\s]*$/.test(clean)&&clean.replace(/[^0-9]/g,"").length>=3;
+  const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[oO]/g,"0").replace(/[:\-]/g," ").trim();
+  return /^[0-9][0-9.,\s]*$/.test(clean)?normalizeReceiptAmount(clean):null;
  };
- let best=null,bestPriority=0,bestIndex=-1;
+ let best=null,bestPriority=0,bestIndex=-1,bestLabel="",bestLine="";
  lines.forEach((line,index)=>{
-  if(ignore.test(line))return;
-  const label=strongTotal.exec(line);
-  const priority=label?3:(/\btotal\b|\btagihan\b/i.test(line)?2:0);
+  if(ignored.test(line))return;
+  const strongMatch=strong.exec(line),genericMatch=generic.exec(line),priority=strongMatch?3:(genericMatch?2:0);
   if(!priority)return;
-  const tail=label?line.slice(label.index+label[0].length):line;
-  const value=amountFrom(tail)||(lines[index+1]&&amountOnly(lines[index+1])?amountFrom(lines[index+1]):null);
-  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index;}
+  const label=strongMatch||genericMatch,tail=line.slice(label.index+label[0].length);
+  const value=amountFrom(tail)||(lines[index+1]&&!ignored.test(lines[index+1])?amountOnly(lines[index+1]):null);
+  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){
+   best=value;bestPriority=priority;bestIndex=index;bestLabel=label[0];bestLine=line+(line.slice(label.index+label[0].length).trim()?"":" "+(lines[index+1]||""));
+  }
  });
  const productLines=lines.filter((line,index)=>{
-  if(ignore.test(line)||strongTotal.test(line)||/\btotal\b|\btagihan\b/i.test(line)||!/\p{L}{3}/u.test(line))return false;
-  return !!amountFrom(line)||(!!lines[index+1]&&amountOnly(lines[index+1]));
+  if(ignored.test(line)||strong.test(line)||generic.test(line)||!/[\p{L}]{3}/u.test(line))return false;
+  return !!amountFrom(line)||(!!lines[index+1]&&!!amountOnly(lines[index+1]));
  });
- const category=categoryFor(productLines.join(" ")||lines.filter(x=>!ignore.test(x)).join(" "),"expense");
+ const category=categoryFor(productLines.join(" ")||lines.filter(line=>!ignored.test(line)).slice(0,8).join(" "),"expense");
  const titles={"Bahan Baku":"Belanja bahan baku","Transportasi":"Biaya transportasi","Utilitas":"Biaya utilitas","Gaji":"Biaya gaji","Marketing":"Biaya pemasaran","Investasi":"Pembelian aset","Perlengkapan":"Pembelian perlengkapan","Operasional":"Biaya operasional"};
- return {amount:best,title:titles[category]||"Transaksi dari struk",category,income:false};
+ return {amount:best,title:titles[category]||"Belanja dari struk",category,income:false,amountPriority:bestPriority,matchedLabel:bestLabel,matchedLine:bestLine};
 }
 function calculateIncomeZakat(monthIncome,yearIncome){
  const monthly=Math.max(0,Number(monthIncome)||0),annual=Math.max(0,Number(yearIncome)||0);
  const monthlyEligible=monthly>=7640144,annualEligible=annual>=91681728;
  return {monthlyIncome:monthly,annualIncome:annual,monthlyEligible,annualEligible,eligible:monthlyEligible||annualEligible,zakatAmount:Math.round(monthlyEligible?monthly*.025:annualEligible?annual*.025:0),basis:monthlyEligible?"monthly":annualEligible?"annual":null};
 }
+function renderReceiptReview(parsed,confidence=0){
+ show("receiptReview");$("receiptTotalPreview").textContent=parsed.amount?money(parsed.amount):"Nominal belum terbaca";
+ $("receiptSummary").textContent=parsed.amount?parsed.title+" · "+parsed.category+(parsed.matchedLabel?" · label "+parsed.matchedLabel:""):"Foto terbaca, tetapi label TOTAL/TOTAL BAYAR belum ditemukan. Isi nominal secara manual.";
+ $("receiptConfidence").textContent=parsed.amount?(parsed.amountPriority===3?"Total dari label utama":"Perlu verifikasi")+(confidence>0?" · OCR "+Math.round(confidence)+"%":""):"Jangan simpan sebelum nominal diperiksa.";
+ $("receiptConfidence").classList.toggle("warning",!parsed.amount||parsed.amountPriority<3);
+}
+function receiptCandidateScore(candidate){const p=candidate.parsed;return(p.amount?1000:0)+(p.amountPriority||0)*120+Math.max(0,Math.min(100,candidate.confidence||0))*.35;}
 async function readReceipt(file){
  if(!file||!file.type.startsWith("image/"))throw new Error("Pilih foto struk JPG, PNG, atau WEBP.");
- smartStatus("Membaca foto struk di perangkat…");
- const worker=await getOcrWorker(),result=await worker.recognize(file),text=result?.data?.text||"";
- if(!text.trim())throw new Error("Teks struk tidak terbaca. Coba foto lebih terang dan lurus.");
- const parsed=parseReceiptText(text);
- $("txType").value="expense";$("txCategory").value=parsed.category;$("txDescription").value=parsed.title;
- $("txAmount").value=parsed.amount?String(parsed.amount):"";
- transactionSource="receipt";
- smartStatus(parsed.amount?"Struk terbaca. Saran: "+parsed.title+" · "+$("txCategory").value+" · "+money(parsed.amount)+". Periksa lalu simpan.":"Struk terbaca, tetapi nominal belum pasti. Isi nominal secara manual sebelum menyimpan.");
+ if(file.size>15*1024*1024)throw new Error("Ukuran foto maksimal 15 MB. Kompres foto atau ambil ulang.");
+ smartStatus("Menyiapkan foto dan meningkatkan keterbacaan teks…");
+ const variants=await prepareReceiptImages(file),worker=await getOcrWorker(),candidates=[],passes=[{image:variants.gray,mode:"6"},{image:variants.binary,mode:"11"}];
+ for(const pass of passes){
+  await worker.setParameters({tessedit_pageseg_mode:pass.mode,preserve_interword_spaces:"1",user_defined_dpi:"300"});
+  const result=await worker.recognize(pass.image,{rotateAuto:true}),text=result?.data?.text||"",confidence=Number(result?.data?.confidence||0);
+  if(text.trim())candidates.push({text,confidence,parsed:parseReceiptText(text)});
+  const best=candidates.slice().sort((a,b)=>receiptCandidateScore(b)-receiptCandidateScore(a))[0];
+  if(best?.parsed.amount&&best.parsed.amountPriority===3&&best.confidence>=72)break;
+  smartStatus("Membaca susunan total dan nominal…");
+ }
+ if(!candidates.length)throw new Error("Teks pada foto tidak terbaca. Ambil foto lebih terang, lurus, dan tidak terpotong.");
+ candidates.sort((a,b)=>receiptCandidateScore(b)-receiptCandidateScore(a));
+ const selected=candidates[0],parsed=selected.parsed;
+ $("txType").value="expense";$("txCategory").value=parsed.category;$("txDescription").value=parsed.title;$("txAmount").value=parsed.amount?String(parsed.amount):"";
+ transactionSource="receipt";renderReceiptReview(parsed,selected.confidence);
+ smartStatus(parsed.amount?"Total terdeteksi: "+money(parsed.amount)+". Periksa total dan kategori sebelum menyimpan.":"Foto terbaca, tetapi nominal total tidak dapat dipastikan. Nominal tidak ditebak; isi sendiri sebelum menyimpan.",!parsed.amount);
 }
 function startVoiceEntry(){const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){smartStatus("Voice input belum didukung browser ini. Gunakan aplikasi Android VoiceCash atau isi manual.",true);return}const recognition=new Speech();recognition.lang="id-ID";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onstart=()=>smartStatus("Mendengarkan… ucapkan jenis transaksi, nominal, dan keterangannya.");recognition.onresult=event=>{const spoken=event.results?.[0]?.[0]?.transcript||"",parsed=parseVoice(spoken);$("txType").value=parsed.type;$("txAmount").value=parsed.amount?String(parsed.amount):"";$("txDescription").value=parsed.title;$("txCategory").value=parsed.category;transactionSource="voice";smartStatus("Terdengar: “"+spoken+"” · "+(parsed.amount?money(parsed.amount):"Nominal belum dikenali")+" · "+parsed.category+". Periksa sebelum simpan.")};recognition.onerror=event=>smartStatus("VoiceCash gagal: "+(event.error||"coba lagi atau isi manual"),true);try{recognition.start()}catch(e){smartStatus(e.message||"VoiceCash tidak dapat dimulai.",true)}}
 async function loadProfile(){
@@ -472,7 +530,10 @@ document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",(
 $("txCurrency").addEventListener("change",refreshFxLabel);
  $("txReceipt").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Struk gagal dibaca.",true)}});
  $("voiceEntry").addEventListener("click",startVoiceEntry);
-$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);
+$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketTarget").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("fxRefresh").addEventListener("click",refreshMarketNow);
+ $("retryReceipt").addEventListener("click",async()=>{const file=$("txReceipt").files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Pindai ulang gagal.",true)}});
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&(activePage==="overview"||activePage==="transactions")&&Date.now()-lastFxRequestAt>120000)loadMarket({scope:"fx",silent:true})});
+ if(marketRefreshTimer)clearInterval(marketRefreshTimer);marketRefreshTimer=setInterval(()=>{if(!document.hidden&&user&&(activePage==="overview"||activePage==="transactions"))loadMarket({scope:"fx",silent:true})},5*60*1000);
 $("searchTx").addEventListener("input",render);
 $("transactionRows").addEventListener("click",async e=>{
  const b=e.target.closest("[data-delete]");if(!b)return;
@@ -493,7 +554,7 @@ $("transactionForm").addEventListener("submit",async e=>{
    const source=transactionSource==="receipt"?"receipt":transactionSource==="voice"?"voice":"manual";
    const row={user_id:user.id,client_ref:crypto.randomUUID(),type:$("txType").value,amount:original,currency,amount_base:Math.round(original*rate),base_currency:"IDR",exchange_rate:rate,category:$("txCategory").value,description:$("txDescription").value.trim(),occurred_at:new Date(date+"T12:00:00+07:00").toISOString(),source,receipt_url:null};
    const {error}=await sb.from("transactions").insert(row);if(error)throw error;
-  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();transactionSource="manual";hide("txSmartStatus");
+  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();transactionSource="manual";hide("txSmartStatus");hide("receiptReview");
   await loadTransactions();
  }catch(error){msg("txError",error.message||"Transaksi gagal disimpan.")}
  finally{button.disabled=false;button.textContent="Simpan transaksi";}
