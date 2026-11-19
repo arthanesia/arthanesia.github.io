@@ -445,8 +445,8 @@ private fun ArthanesiaApp() {
         EntryMethodDialog(
             onDismiss = { showEntryChooser = false },
             onManual = { showEntryChooser = false; receiptDraft = false; voiceDraft = ""; parsedAmount = ""; suggestedCategory = if (initialIncome) "Penjualan" else "Lainnya"; showTransaction = true },
-            onReceipt = { showEntryChooser = false; receiptLauncher.launch("image/*") },
-            onVoice = { showEntryChooser = false; micPermission.launch(Manifest.permission.RECORD_AUDIO) }
+            onReceipt = { showEntryChooser = false; receiptDraft = false; receiptLauncher.launch("image/*") },
+            onVoice = { showEntryChooser = false; receiptDraft = false; micPermission.launch(Manifest.permission.RECORD_AUDIO) }
         )
     }
     if (showTransaction) {
@@ -1583,7 +1583,13 @@ private fun TransactionDialog(
                 if (selectedCurrency != "IDR") {
                     Text(
                         if (rateToIdr > 0) {
-                            val sourceLabel = if (marketData?.fxSource == "exchangerate.dev") "Kurs indikatif intraday" else "Kurs referensi harian"
+                            val sourceLabel = when {
+                                marketData?.fxStale == true -> "Kurs tertunda"
+                                marketData?.fxSource == "open.er-api.com" -> "Kurs referensi harian"
+                                marketData?.fxSourceType == "ecb_daily" || marketData?.fxSourceType == "market_daily" -> "Kurs referensi harian"
+                                marketData?.fxSource == "exchangerate.dev" -> "Kurs indikatif intraday"
+                                else -> "Kurs referensi"
+                            }
                             val stamp = marketData?.fxUpdatedAt?.let(::marketTimestamp)
                             val delay = marketData?.fxDelaySeconds?.takeIf { it > 0 }?.let { " · jeda ±${(it + 59) / 60} menit" }.orEmpty()
                             "1 $selectedCurrency ≈ ${rupiah(rateToIdr.toLong())} · $sourceLabel${stamp?.let { " · $it" } ?: ""}$delay"
