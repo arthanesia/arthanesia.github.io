@@ -203,8 +203,8 @@ function msg(id,text){$(id).textContent=text;show(id)}
 function setPage(name){
   activePage=name;document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);
   document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));
-  if(user&&name==="overview"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"all",silent:!!market});
-  if(user&&name==="transactions"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"fx",silent:!!market});
+  if(user&&name==="overview")loadMarket({scope:"all",silent:!!market});
+  if(user&&name==="transactions")loadMarket({scope:"fx",silent:!!market});
   if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}
  }
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
