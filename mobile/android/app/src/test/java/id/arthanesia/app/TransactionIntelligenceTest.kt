@@ -344,4 +344,44 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt(receipt)
         assertEquals(33_000L, result.amount)
     }
+    @Test
+    fun receiptParsesIndonesianDecimalTotalWithoutMultiplyingByOneHundred() {
+        val result = TransactionIntelligence.fromReceipt("TOTAL BAYAR Rp 33.000,00")
+        assertEquals(33_000L, result.amount)
+    }
+
+    @Test
+    fun receiptParsesMultipleThousandsSeparators() {
+        val result = TransactionIntelligence.fromReceipt("GRAND TOTAL Rp 1.234.567")
+        assertEquals(1_234_567L, result.amount)
+    }
+
+    @Test
+    fun receiptParsesTotalOnNextLineWithIndonesianDecimalSuffix() {
+        val result = TransactionIntelligence.fromReceipt(
+            """
+                TOKO MAKMUR
+                TOTAL PEMBAYARAN
+                Rp 1.234.567,00
+                Tunai Rp 1.500.000
+                Kembali Rp 265.433
+            """.trimIndent()
+        )
+        assertEquals(1_234_567L, result.amount)
+    }
+
+    @Test
+    fun receiptDoesNotMistakeCashOrChangeForPaymentTotal() {
+        val result = TransactionIntelligence.fromReceipt(
+            """
+                TOKO MAKMUR
+                Tepung Terigu 15.000
+                Subtotal 15.000
+                Tunai 20.000
+                Kembali 5.000
+            """.trimIndent()
+        )
+        assertEquals(null, result.amount)
+    }
+
 }
