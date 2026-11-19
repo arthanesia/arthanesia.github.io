@@ -359,7 +359,7 @@ function parseReceiptText(rawText){
  const generic=/\btotal\b|\btagihan\b|\bjumlah\b|\bamount\s*due\b/i;
  const amountFrom=line=>{
   const matches=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)];
-  for(const match of matches){if(match[1].replace(/[^0-9]/g,"").length<3)continue;const value=normalizeReceiptAmount(match[1]);if(value)return value;}return null;
+  for(const match of matches){const token=match[1].replace(/[oO]/g,"0");if(token.replace(/[^0-9]/g,"").length<3)continue;const value=normalizeReceiptAmount(token);if(value)return value;}return null;
  };
  const amountOnly=line=>{
   const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[oO]/g,"0").replace(/[:\-]/g," ").trim();
