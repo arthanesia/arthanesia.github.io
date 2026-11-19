@@ -41,6 +41,9 @@ import com.google.mlkit.vision.common.InputImage
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.net.HttpURLConnection
 import java.net.URL
@@ -58,6 +61,11 @@ private val Red = Color(0xFFD9485F)
 private val Gold = Color(0xFFC58B34)
 private fun rupiah(value: Long): String =
     NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(value).replace(",00", "")
+
+private fun marketTimestamp(value: String): String? = runCatching {
+    Instant.parse(value).atZone(ZoneId.of("Asia/Jakarta"))
+        .format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale("id", "ID"))) + " WIB"
+}.getOrNull()
 
 internal data class MoneyEntry(
     val id: Long = System.currentTimeMillis(),
@@ -108,6 +116,7 @@ private fun ArthanesiaApp() {
     var entries by remember { mutableStateOf(cloudSession?.let { appDatabase.transactions(it.userId) } ?: emptyList()) }
     var goals by remember { mutableStateOf(cloudSession?.let { appDatabase.goals(it.userId) } ?: emptyList()) }
     var showTransaction by remember { mutableStateOf(false) }
+    var receiptDraft by remember { mutableStateOf(false) }
     var showEntryChooser by remember { mutableStateOf(false) }
     var initialIncome by remember { mutableStateOf(true) }
     var showGoal by remember { mutableStateOf(false) }
@@ -163,6 +172,7 @@ private fun ArthanesiaApp() {
         val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
         if (!spoken.isNullOrBlank()) {
             val parsed = TransactionIntelligence.fromVoice(spoken)
+            receiptDraft = false
             initialIncome = parsed.income
             voiceDraft = parsed.title
             parsedAmount = parsed.amount?.toString() ?: ""
@@ -180,6 +190,7 @@ private fun ArthanesiaApp() {
                     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).process(image)
                         .addOnSuccessListener { result ->
                             val parsed = TransactionIntelligence.fromReceipt(result.text)
+                            receiptDraft = true
                             voiceDraft = parsed.title
                             parsedAmount = parsed.amount?.toString() ?: ""
                             initialIncome = false
@@ -433,18 +444,19 @@ private fun ArthanesiaApp() {
     if (showEntryChooser) {
         EntryMethodDialog(
             onDismiss = { showEntryChooser = false },
-            onManual = { showEntryChooser = false; voiceDraft = ""; parsedAmount = ""; suggestedCategory = if (initialIncome) "Penjualan" else "Lainnya"; showTransaction = true },
-            onReceipt = { showEntryChooser = false; receiptLauncher.launch("image/*") },
-            onVoice = { showEntryChooser = false; micPermission.launch(Manifest.permission.RECORD_AUDIO) }
+            onManual = { showEntryChooser = false; receiptDraft = false; voiceDraft = ""; parsedAmount = ""; suggestedCategory = if (initialIncome) "Penjualan" else "Lainnya"; showTransaction = true },
+            onReceipt = { showEntryChooser = false; receiptDraft = false; receiptLauncher.launch("image/*") },
+            onVoice = { showEntryChooser = false; receiptDraft = false; micPermission.launch(Manifest.permission.RECORD_AUDIO) }
         )
     }
     if (showTransaction) {
-        TransactionDialog(initialIncome, voiceDraft, parsedAmount, suggestedCategory, currency, fxMarketData,
-            onDismiss = { showTransaction = false; voiceDraft = ""; parsedAmount = "" }) {
+        TransactionDialog(initialIncome, voiceDraft, parsedAmount, suggestedCategory, currency, fxMarketData, receiptDraft,
+            onDismiss = { showTransaction = false; receiptDraft = false; voiceDraft = ""; parsedAmount = "" }) {
             val ownerId = cloudSession?.userId ?: return@TransactionDialog
             appDatabase.saveTransaction(it, ownerId)
             entries = appDatabase.transactions(ownerId)
             showTransaction = false
+            receiptDraft = false
             voiceDraft = ""
             parsedAmount = ""
         }
@@ -1499,6 +1511,7 @@ private fun TransactionDialog(
     initialCategory: String,
     defaultCurrency: String,
     marketData: MarketData?,
+    fromReceipt: Boolean,
     onDismiss: () -> Unit,
     onSave: (MoneyEntry) -> Unit
 ) {
@@ -1519,11 +1532,32 @@ private fun TransactionDialog(
         title = { Text("Catat transaksi", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                if (fromReceipt) {
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("HASIL PINDAI STRUK", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .7.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            if (amount.isNotBlank()) {
+                                Text("Total pembayaran terdeteksi", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Text(
+                                    amount.toLongOrNull()?.let(::rupiah) ?: "Periksa nominal",
+                                    fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text("Pastikan sama dengan baris TOTAL BAYAR sebelum menyimpan.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            } else {
+                                Text("Nominal total belum terbaca", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Text("Isi jumlah yang tertera pada TOTAL / TOTAL BAYAR di struk.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            }
+                        }
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = income, onClick = { income = true }, label = { Text("Pemasukan") })
                     FilterChip(selected = !income, onClick = { income = false }, label = { Text("Pengeluaran") })
                 }
-                OutlinedTextField(title, { title = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(title, { title = it }, label = { Text("Deskripsi singkat") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Box {
                     OutlinedButton(onClick = { currencyExpanded = true }) {
                         Text("Mata uang: $selectedCurrency")
@@ -1541,15 +1575,25 @@ private fun TransactionDialog(
                 OutlinedTextField(
                     amount,
                     { amount = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }; error = "" },
-                    label = { Text("Nominal $selectedCurrency") },
+                    label = { Text(if (fromReceipt) "Total pembayaran ($selectedCurrency)" else "Nominal $selectedCurrency") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
                 if (selectedCurrency != "IDR") {
                     Text(
-                        if (rateToIdr > 0) "Kurs referensi saat ini: 1 $selectedCurrency ≈ ${rupiah(rateToIdr.toLong())} · konversi disimpan saat transaksi dibuat"
-                        else "Memuat kurs referensi. Transaksi mata uang asing belum dapat disimpan.",
+                        if (rateToIdr > 0) {
+                            val sourceLabel = when {
+                                marketData?.fxStale == true -> "Kurs tertunda"
+                                marketData?.fxSource == "open.er-api.com" -> "Kurs referensi harian"
+                                marketData?.fxSourceType == "ecb_daily" || marketData?.fxSourceType == "market_daily" -> "Kurs referensi harian"
+                                marketData?.fxSource == "exchangerate.dev" -> "Kurs indikatif intraday"
+                                else -> "Kurs referensi"
+                            }
+                            val stamp = marketData?.fxUpdatedAt?.let(::marketTimestamp)
+                            val delay = marketData?.fxDelaySeconds?.takeIf { it > 0 }?.let { " · jeda ±${(it + 59) / 60} menit" }.orEmpty()
+                            "1 $selectedCurrency ≈ ${rupiah(rateToIdr.toLong())} · $sourceLabel${stamp?.let { " · $it" } ?: ""}$delay"
+                        } else "Memuat kurs terbaru. Transaksi mata uang asing belum dapat disimpan.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp
                     )
                 }

@@ -9,8 +9,8 @@ android {
         applicationId = "id.arthanesia.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.7.2"
+        versionCode = 13
+        versionName = "0.7.3"
     }
     buildFeatures { compose = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }

@@ -71,7 +71,7 @@ async function fetchFxSnapshot():Promise<FxSnapshot>{
         fallbackReason:primaryError instanceof Error?primaryError.message:"Intraday provider unavailable",
       }};
     }
-  })().then(snapshot=>{fxCache={value:snapshot,expiresAt:Date.now()+300000};return snapshot;}).finally(()=>{fxPending=null;});
+  })().then(snapshot=>{fxCache={value:snapshot,expiresAt:Date.now()+90000};return snapshot;}).finally(()=>{fxPending=null;});
   return fxPending;
 }
 Deno.serve(async(req:Request)=>{

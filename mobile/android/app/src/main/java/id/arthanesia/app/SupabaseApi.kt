@@ -25,6 +25,10 @@ internal data class MarketData(
     val goldIdrPerGram: Double,
     val fxUpdatedAt: String,
     val goldUpdatedAt: String,
+    val fxSource: String = "unknown",
+    val fxSourceType: String = "unknown",
+    val fxDelaySeconds: Int? = null,
+    val fxStale: Boolean = false,
     val antamRetailIdrPerGram: Double = 0.0,
     val antamRetailInclTaxIdrPerGram: Double = 0.0,
     val antamBuybackIdrPerGram: Double = 0.0,
@@ -340,11 +344,16 @@ internal object SupabaseApi {
         ratesJson.keys().forEach { code -> rates[code] = ratesJson.optDouble(code, 0.0) }
         val gold = obj.optJSONObject("gold") ?: JSONObject()
         val antam = obj.optJSONObject("antam") ?: JSONObject()
+        val fx = obj.optJSONObject("fx") ?: JSONObject()
         MarketData(
             ratesPerIdr = rates,
             goldIdrPerGram = gold.optDouble("spotIdrPerGram", gold.optDouble("idrPerGram", 0.0)),
-            fxUpdatedAt = obj.optString("rateUpdatedAt", obj.optJSONObject("fx")?.optString("updatedAt") ?: ""),
+            fxUpdatedAt = fx.optString("updatedAt", obj.optString("rateUpdatedAt", "")),
             goldUpdatedAt = gold.optString("updatedAt"),
+            fxSource = obj.optString("rateSource", fx.optString("source", "unknown")),
+            fxSourceType = fx.optString("sourceType", "unknown"),
+            fxDelaySeconds = if (fx.has("delaySeconds") && !fx.isNull("delaySeconds")) fx.optInt("delaySeconds") else null,
+            fxStale = fx.optBoolean("stale", false),
             antamRetailIdrPerGram = antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0)),
             antamRetailInclTaxIdrPerGram = antam.optDouble("retailInclTaxIdrPerGram", antam.optDouble("retailIdrPerGram", antam.optDouble("idrPerGram", 0.0))),
             antamBuybackIdrPerGram = antam.optDouble("buybackIdrPerGram", 0.0),
