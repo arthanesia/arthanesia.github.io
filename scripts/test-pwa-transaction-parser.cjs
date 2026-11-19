@@ -39,10 +39,10 @@ const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
 
 const parserSource = appScript.slice(parserStart, parserEnd) +
-  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateIncomeZakat };";
+  "\nthis.__arthanesiaParser = { parseVoice, parseReceiptText, calculateIncomeZakat, normalizeReceiptAmount };";
 const sandbox = {};
 vm.runInNewContext(parserSource, sandbox, { filename: "app transaction parser" });
-const { parseVoice, parseReceiptText, calculateIncomeZakat } = sandbox.__arthanesiaParser;
+const { parseVoice, parseReceiptText, calculateIncomeZakat, normalizeReceiptAmount } = sandbox.__arthanesiaParser;
 
 let parsed = parseVoice("pengeluaran 5000 beli bahan baku");
 assert.equal(parsed.type, "expense");
@@ -131,6 +131,36 @@ Rp 18.000
 assert.equal(splitLineNoTotal.amount, null, "item prices on following lines must not be guessed as receipt total");
 assert.equal(splitLineNoTotal.title, "Belanja bahan baku", "receipt description must not list every product");
 
+
+assert.equal(normalizeReceiptAmount("33.000,00"), 33000, "Indonesian decimal suffix should not multiply totals by 100");
+assert.equal(normalizeReceiptAmount("1.234.567"), 1234567, "Indonesian thousands separators should be normalized");
+assert.equal(normalizeReceiptAmount("33.OOO"), 33000, "OCR O characters should normalize to zero");
+
+
+const decimalTotalReceipt = parseReceiptText(`
+TOKO MAKMUR
+Tepung Terigu 1 KG
+Rp 15.000
+TOTAL BAYAR
+Rp 33.000,00
+`);
+assert.equal(decimalTotalReceipt.amount, 33000, "TOTAL BAYAR with decimal cents should parse as rupiah");
+
+const amountDueReceipt = parseReceiptText(`
+MINI MARKET
+AMOUNT DUE
+IDR 125,000
+Cash 150,000
+Change 25,000
+`);
+assert.equal(amountDueReceipt.amount, 125000, "AMOUNT DUE on a separate line should win");
+
+const totalWithReferenceReceipt = parseReceiptText(`
+TOKO MAKMUR
+TOTAL BAYAR Rp 33.000 KARTU 12345678
+`);
+assert.equal(totalWithReferenceReceipt.amount, 33000, "payment reference after total must not replace the amount");
+
 let incomeZakat = calculateIncomeZakat(7640144, 7640144);
 assert.equal(incomeZakat.basis, "monthly");
 assert.equal(incomeZakat.zakatAmount, 191004);
@@ -139,4 +169,4 @@ incomeZakat = calculateIncomeZakat(5000000, 91681728);
 assert.equal(incomeZakat.basis, "annual", "variable income can qualify on the annual threshold");
 assert.equal(incomeZakat.zakatAmount, 2292043);
 
-console.log("PWA tests passed: auth recovery state, voice, OCR totals, zakat nisab/haul, income thresholds.");
+console.log("PWA tests passed: auth recovery, voice, receipt OCR totals, FX, zakat nisab/haul and income thresholds.");
