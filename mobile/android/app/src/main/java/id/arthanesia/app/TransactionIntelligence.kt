@@ -97,13 +97,13 @@ internal object TransactionIntelligence {
             if (value != null && value > 0) return value
         }
         val direct = numericAmount.findAll(text).mapNotNull { it.groupValues.getOrNull(1)?.let(::digitsToLong) }
-            .filter { it > 0 }.lastOrNull()
+            .firstOrNull { it > 0 }
         return direct ?: parseIndonesianNumberWords(text)
     }
 
     private fun isAmountOnlyLine(raw: String): Boolean {
         val normalized = raw
-            .replace(Regex("(?i)\\b(?:rp\\.?|idr)\\b"), " ")
+            .replace(Regex("(?i)^\\s*(?:rp\\.?\\s*|idr\\s*)"), "")
             .replace('O', '0')
             .replace('o', '0')
             .trim()
