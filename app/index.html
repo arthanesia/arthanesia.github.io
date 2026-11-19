@@ -281,11 +281,12 @@ function formatConvertedCurrency(amount,currency){
  if(!Number.isFinite(amount))return "—";if(currency==="IDR")return money(amount);
  return currency+" "+amount.toLocaleString("id-ID",{minimumFractionDigits:0,maximumFractionDigits:2});
 }
+function convertCurrencyByIdrRates(amount,from,to,rates){const fromUnits=from==="IDR"?1:Number(rates?.[from]||0),toUnits=to==="IDR"?1:Number(rates?.[to]||0);return Number.isFinite(amount)&&fromUnits>0&&toUnits>0?amount*toUnits/fromUnits:null;}
 function refreshMarketTools(){
- const from=$("marketCurrency")?.value||"USD",to=$("marketTarget")?.value||"IDR",amount=parseLocalAmount($("marketAmount")?.value||"0");
- const fromRate=rateToIdr(from),toRate=rateToIdr(to),converted=fromRate>0&&toRate>0?amount*fromRate/toRate:null;
+ const from=$("marketCurrency")?.value||"USD",to=$("marketTarget")?.value||"IDR",amount=parseLocalAmount($("marketAmount")?.value||"0"),rates=market?.rates||{};
+ const converted=convertCurrencyByIdrRates(amount,from,to,rates),unit=convertCurrencyByIdrRates(1,from,to,rates);
  if($("marketResult"))$("marketResult").textContent=converted===null?"—":formatConvertedCurrency(converted,to);
- if($("fxPairNote"))$("fxPairNote").textContent=fromRate>0&&toRate>0?"1 "+from+" = "+formatConvertedCurrency(fromRate/toRate,to):"Pasangan kurs belum tersedia.";
+ if($("fxPairNote"))$("fxPairNote").textContent=unit===null?"Pasangan kurs belum tersedia.":"1 "+from+" = "+formatConvertedCurrency(unit,to);
 }
 async function refreshMarketNow(){const button=$("fxRefresh");if(button.disabled)return;button.disabled=true;button.textContent="Memperbarui…";try{await loadMarket({scope:"fx",silent:true});}finally{button.disabled=false;button.textContent="Perbarui kurs";}}
 function renderZakat(){
