@@ -217,4 +217,70 @@ class TransactionIntelligenceTest {
         assertEquals("Belanja bahan baku", result.title)
     }
 
+
+    @Test
+    fun receiptNormalizesIndonesianDecimalSuffix() {
+        val result = TransactionIntelligence.fromReceipt(
+            """
+                TOKO MAKMUR
+                TOTAL BAYAR
+                Rp 33.000,00
+            """.trimIndent()
+        )
+
+        assertEquals(33_000L, result.amount)
+    }
+
+    @Test
+    fun receiptNormalizesMixedThousandsAndDecimalSeparators() {
+        val result = TransactionIntelligence.fromReceipt(
+            """
+                TOKO MAKMUR
+                GRAND TOTAL Rp 1.234.567,00
+            """.trimIndent()
+        )
+
+        assertEquals(1_234_567L, result.amount)
+    }
+
+    @Test
+    fun receiptKeepsThousandsSeparatorWhenThereAreThreeTrailingDigits() {
+        val result = TransactionIntelligence.fromReceipt("TOTAL BAYAR Rp 33.000")
+
+        assertEquals(33_000L, result.amount)
+    }
+
+    @Test
+    fun receiptAcceptsTotalPaymentAndAmountPayableLabels() {
+        val totalPayment = TransactionIntelligence.fromReceipt("TOTAL PAYMENT 125,000")
+        val amountPayable = TransactionIntelligence.fromReceipt("AMOUNT PAYABLE 250.000")
+
+        assertEquals(125_000L, totalPayment.amount)
+        assertEquals(250_000L, amountPayable.amount)
+    }
+
+    @Test
+    fun receiptIgnoresSubtotalTaxCashAndChangeLinesWhenFindingTotal() {
+        val receipt = """
+            TOKO MAKMUR
+            Tepung Terigu 1 KG 15.000
+            Subtotal Rp 15.000
+            PPN Rp 1.650
+            Tunai Rp 50.000
+            Kembali Rp 33.350
+            TOTAL BAYAR Rp 16.650
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+
+        assertEquals(16_650L, result.amount)
+    }
+
+    @Test
+    fun receiptUsesFirstAmountAfterTotalAndDoesNotTakeCardReference() {
+        val result = TransactionIntelligence.fromReceipt("TOTAL BAYAR Rp 33.000 KARTU 12345678")
+
+        assertEquals(33_000L, result.amount)
+    }
+
 }
