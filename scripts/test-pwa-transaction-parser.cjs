@@ -34,6 +34,26 @@ assert.equal(authSandbox.authRule("INITIAL_SESSION", { user: {} }, true), false,
 assert.equal(authSandbox.authRule("SIGNED_IN", { user: {} }, true), false, "recovery mode must not be overridden by a sign-in callback");
 assert.equal(authSandbox.authRule("PASSWORD_RECOVERY", { user: {} }, false), false, "recovery events must render the reset form, not the app");
 assert.equal(authSandbox.authRule("INITIAL_SESSION", null, false), false, "empty sessions must not enter the app");
+assert.ok(html.includes('id="marketTarget"'), "converter must support selecting a target currency");
+assert.ok(html.includes('id="fxRefresh"'), "converter must offer manual rate refresh");
+assert.ok(html.includes('id="marketFxStamp"'), "converter must display rate observation time");
+const fxRateHelperSource = appScript.split("\\n").find(line => line.trim().startsWith("function convertCurrencyByIdrRates("));
+assert.ok(fxRateHelperSource, "FX cross-conversion function must be present");
+const fxSandbox = {};
+vm.runInNewContext(fxRateHelperSource + "\\nthis.convert = convertCurrencyByIdrRates;", fxSandbox);
+const sampleRates = { IDR: 1, USD: 0.00006, EUR: 0.000055, SGD: 0.000077 };
+assert.ok(Math.abs(fxSandbox.convert(1, "USD", "IDR", sampleRates) - 16666.6666667) < 0.01, "USD to IDR cross conversion must use the IDR base correctly");
+assert.ok(Math.abs(fxSandbox.convert(250000, "IDR", "SGD", sampleRates) - 19.25) < 0.0001, "IDR to SGD conversion must use the IDR base correctly");
+assert.ok(Math.abs(fxSandbox.convert(1, "USD", "EUR", sampleRates) - 0.9166666667) < 0.0001, "cross-currency conversion must work");
+assert.equal(fxSandbox.convert(1, "USD", "CAD", sampleRates), null, "unsupported pair must not invent a rate");
+const parseAmountStart = appScript.indexOf("function parseLocalAmount(");
+const parseAmountEnd = appScript.indexOf("function formatConvertedCurrency(", parseAmountStart);
+assert.ok(parseAmountStart >= 0 && parseAmountEnd > parseAmountStart, "locale-aware converter amount parser must exist");
+const amountSandbox = {};
+vm.runInNewContext(appScript.slice(parseAmountStart, parseAmountEnd) + "\\nthis.parse = parseLocalAmount;", amountSandbox);
+assert.equal(amountSandbox.parse("1.234,56"), 1234.56, "Indonesian decimal input must parse");
+assert.equal(amountSandbox.parse("1,234.56"), 1234.56, "English decimal input must parse");
+
 const parserStart = appScript.indexOf("function categoryFor");
 const parserEnd = appScript.indexOf("async function readReceipt", parserStart);
 assert.ok(parserStart >= 0 && parserEnd > parserStart, "PWA transaction parser functions must be present");
