@@ -44,6 +44,31 @@
 @media(max-width:600px){.achievement-grid{grid-template-columns:1fr}}
 
 .password-row{display:flex;gap:7px;align-items:stretch}.password-row input{min-width:0;flex:1}.password-toggle{flex:none;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--muted);font-size:10px;font-weight:800}:root[data-theme="dark"] .password-toggle{background:#142c42;color:#c9d8e7;border-color:var(--line)}#passwordRecovery{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+
+/* Arthanesia product UI system */
+:root{--ink:#14243a;--muted:#63738a;--line:#e3e9f1;--purple:#1769d2;--deep:#0d3c78;--bg:#f4f7fb;--green:#087f5b;--red:#c54454;--gold:#a9751c;--card:#fff;--surface:#fff;--surface-soft:#f8fafd;--shadow:0 8px 26px rgba(18,36,58,.055);--radius:18px}
+html{background:var(--bg);scroll-behavior:smooth}body{font-size:14px;line-height:1.55;background:var(--bg)}a{color:var(--purple);text-underline-offset:3px}button,input,select,textarea{font:inherit}button{transition:background .16s,border-color .16s,box-shadow .16s,transform .16s}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid rgba(23,105,210,.22);outline-offset:2px}.wrap{width:min(1240px,calc(100% - 40px))}
+.top{height:72px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(20,36,58,.025);backdrop-filter:blur(12px)}.brand{font-size:17px;font-weight:780;letter-spacing:-.35px}.logo{height:38px;width:38px;border-radius:12px;background:#1459a8;box-shadow:0 5px 14px rgba(20,89,168,.18)}.topright{gap:10px}.small{font-size:12px}.muted{color:var(--muted)}
+.btn{min-height:40px;padding:9px 15px;border:1px solid var(--line);background:var(--surface);border-radius:11px;font-size:13px;font-weight:680;color:var(--ink);box-shadow:0 1px 2px rgba(20,36,58,.025)}.btn:hover{border-color:#b8c8dc;background:#f8fbff}.btn.primary{background:#1459a8;border-color:#1459a8;color:#fff;box-shadow:0 5px 12px rgba(20,89,168,.14)}.btn.primary:hover{background:#0e4b91;border-color:#0e4b91;transform:translateY(-1px)}.btn.danger{color:var(--red)}
+.auth{min-height:calc(100vh - 72px)}.authcard{border-radius:22px;padding:34px;box-shadow:0 18px 50px rgba(17,37,61,.08)}.authcard h1{font-size:28px;letter-spacing:-1px}
+.field{gap:7px;margin:13px 0}.field label,.market-tools label{font-size:12px;font-weight:680;color:#53657d}.field input,.field select,.field textarea{min-height:44px;padding:11px 13px;border:1px solid #d9e2ec;border-radius:11px;font-size:14px;background:#fff}.field input:focus,.field select:focus,.field textarea:focus{border-color:#4e91d8;box-shadow:0 0 0 3px rgba(23,105,210,.1)}
+.layout{grid-template-columns:238px minmax(0,1fr);gap:25px;padding:28px 0 48px}.side{border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow);top:92px}.navitem{border-radius:10px;padding:12px 14px;font-size:13px;font-weight:650;color:#68788e}.navitem.active,.navitem:hover{background:#edf4fc;color:#1459a8}.content{min-width:0}
+.heading{margin-bottom:20px}.heading h1{font-size:28px;letter-spacing:-.9px;font-weight:760}.heading p{font-size:13px;margin-top:5px}.cards{gap:15px;margin-bottom:18px}.card{padding:20px;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}.cardlabel{font-size:12px;font-weight:600;color:#697991}.cardvalue{font-size:26px;font-weight:760;letter-spacing:-.65px;margin-top:9px}
+.section{padding:21px;margin-bottom:16px;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}.secthead{margin-bottom:15px}.secthead h2{font-size:15px;font-weight:730;letter-spacing:-.2px}.tablewrap{border-radius:12px}table{font-size:13px;min-width:720px}th,td{padding:13px 12px;border-bottom:1px solid #edf1f5}th{font-size:11px;letter-spacing:.35px;background:#f8fafd}td{font-size:13px}.pill{font-size:11px;padding:4px 9px}.formgrid{gap:7px 16px}.field input,.field select,.field textarea{color:var(--ink)}.actions{gap:9px}.rates{font-size:12px;line-height:1.6;color:var(--muted)}.empty{padding:38px 20px;font-size:13px}
+.entry-tools{gap:12px;margin:12px 0 10px}.entry-tool{display:flex;min-height:78px;flex-direction:column;justify-content:center;border:1px solid var(--line);border-radius:14px;background:#f8fafd;padding:15px 17px;font-size:14px;font-weight:720;letter-spacing:-.1px}.entry-tool:hover{border-color:#a9c4e1;background:#f2f7fd}.entry-tool span{font-size:12px;line-height:1.45;color:var(--muted);margin-top:5px}.smart-status{font-size:12px;line-height:1.5;padding:11px 13px;border-radius:11px;background:#eef5fc;color:#355b82;border:1px solid #dbe8f6;margin:10px 0}.smart-status.is-error{background:#fff3f3;color:#9c3544;border-color:#f1d3d7}
+.market-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.market-card{border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--surface-soft)}.market-card .label{font-size:11px;font-weight:650;color:var(--muted)}.market-card .value{font-size:19px;font-weight:760;letter-spacing:-.35px;margin:6px 0}.market-card .fresh{font-size:11px;line-height:1.4;color:var(--green);font-weight:600}
+.market-tools{display:block;margin-top:16px}.fx-widget{border:1px solid var(--line);border-radius:16px;background:var(--surface-soft);padding:17px}.fx-widget-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.fx-widget-head strong{font-size:14px;font-weight:730}.fx-widget-head .btn{min-height:34px;padding:7px 11px;font-size:12px}.fx-fields{display:grid;grid-template-columns:1fr 1fr 1.2fr 1.25fr;gap:11px;align-items:end}.fx-fields .field{margin:0;min-width:0}.fx-fields .field input,.fx-fields .field select{width:100%;min-width:0}.fx-result{min-height:68px;display:flex;flex-direction:column;justify-content:center;padding:10px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}.fx-result label{font-size:11px;color:var(--muted);font-weight:650}.fx-result strong{font-size:21px;line-height:1.35;font-weight:760;letter-spacing:-.5px;overflow-wrap:anywhere}.fx-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;font-size:11px;color:var(--muted)}.fx-pair-note{margin-top:4px;color:var(--muted);font-size:11px}
+.receipt-review{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin:14px 0;padding:17px 18px;border:1px solid #dce6f1;border-radius:15px;background:#f8fbff}.receipt-review-label{font-size:11px;font-weight:680;color:var(--muted);margin-bottom:4px}.receipt-review-total{font-size:28px;line-height:1.2;font-weight:780;letter-spacing:-.8px;color:var(--ink)}.receipt-review-meta{font-size:12px;color:var(--muted);margin-top:5px}.receipt-review-status{font-size:12px;color:#275f95;font-weight:680;text-align:right}.receipt-review-status.warning{color:#9a6312}.receipt-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:9px}
+.chat{gap:12px;max-height:460px}.bubble{padding:13px 15px;border-radius:14px;background:#f1f5f9;font-size:13px;line-height:1.6}.bubble.user{background:#eaf2fc}.achievement{border-radius:14px;padding:14px}.achievement-title{font-size:13px}.achievement-desc{font-size:11px;line-height:1.45}.xp-card{border-radius:15px;padding:16px}.footer{padding:18px 0 32px;font-size:11px}
+:root[data-theme="dark"]{--ink:#edf3fa;--muted:#a7b8cb;--line:#293e54;--purple:#79b9f0;--deep:#0c2942;--bg:#0b1623;--green:#69d0a8;--red:#ff929f;--gold:#e0bb71;--card:#132336;--surface:#132336;--surface-soft:#102033;--shadow:0 9px 28px rgba(0,0,0,.18);color-scheme:dark}
+:root[data-theme="dark"] body{background:var(--bg);color:var(--ink)}:root[data-theme="dark"] .top{background:rgba(13,29,46,.96);border-color:var(--line)}:root[data-theme="dark"] .side,:root[data-theme="dark"] .section,:root[data-theme="dark"] .card,:root[data-theme="dark"] .authcard{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}:root[data-theme="dark"] .navitem{color:#a7b8cb}:root[data-theme="dark"] .navitem.active,:root[data-theme="dark"] .navitem:hover{background:#1b3854;color:#d6ebff}
+:root[data-theme="dark"] .market-card,:root[data-theme="dark"] .fx-widget,:root[data-theme="dark"] .receipt-review,:root[data-theme="dark"] .entry-tool,:root[data-theme="dark"] .xp-card,:root[data-theme="dark"] .achievement{background:#102033;border-color:var(--line);color:var(--ink)}:root[data-theme="dark"] .field input,:root[data-theme="dark"] .field select,:root[data-theme="dark"] .field textarea,:root[data-theme="dark"] .fx-result,:root[data-theme="dark"] .fx-fields select,:root[data-theme="dark"] .fx-fields input{background:#0b1928;border-color:#31485f;color:var(--ink)}:root[data-theme="dark"] .fx-result strong,:root[data-theme="dark"] .receipt-review-total{color:var(--ink)}:root[data-theme="dark"] .receipt-review{border-color:#29445f}
+:root[data-theme="dark"] th{background:#182d42;color:#b7c8da}:root[data-theme="dark"] td,:root[data-theme="dark"] th{border-bottom-color:#263b50}:root[data-theme="dark"] .bubble{background:#1a3045;color:var(--ink)}:root[data-theme="dark"] .bubble.user{background:#1c4160}:root[data-theme="dark"] .tabbar{background:#0e2032;border-color:var(--line)}:root[data-theme="dark"] .btn{background:#152b40;color:var(--ink);border-color:var(--line)}:root[data-theme="dark"] .btn.primary{background:#1769a8;border-color:#1769a8;color:white}:root[data-theme="dark"] .smart-status{background:#172e45;border-color:#29445f;color:#c5ddf3}:root[data-theme="dark"] .smart-status.is-error{background:#462735;color:#ffc5ce;border-color:#70404d}
+@media(max-width:960px){.layout{grid-template-columns:1fr;gap:16px}.side{position:static;display:flex;overflow-x:auto;gap:4px}.side .navitem{white-space:nowrap;width:auto;flex:1;text-align:center}}
+@media(max-width:720px){.wrap{width:calc(100% - 26px)}.top{height:64px}.layout{padding:16px 0 36px}.side{display:none}.tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:7px 6px calc(7px + env(safe-area-inset-bottom));z-index:9;justify-content:space-around}.tabbar .navitem{font-size:11px;padding:9px 6px;text-align:center}.content{padding-bottom:74px}.cards{grid-template-columns:1fr 1fr;gap:10px}.cards .card:last-child{grid-column:1/-1}.card{padding:16px}.cardvalue{font-size:21px}.heading h1{font-size:24px}.heading{align-items:flex-start;flex-direction:column}.section{padding:16px}.market-grid{grid-template-columns:1fr 1fr}.fx-fields{grid-template-columns:1fr 1fr}.fx-result{grid-column:1/-1}.receipt-review{grid-template-columns:1fr}.receipt-review-status{text-align:left}.auth{min-height:calc(100vh - 64px);padding:16px}.authcard{padding:23px}.topright .small{display:none}}
+@media(max-width:420px){.fx-fields{grid-template-columns:1fr}.fx-result{grid-column:auto}.market-grid{grid-template-columns:1fr}.fx-widget{padding:13px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
 </style>\n</head>
 <body>
 <header class="top"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center"><a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="logo">A</span>Arthanesia <span class="muted" style="font-weight:500;font-size:12px">/ App</span></a><div class="topright"><button id="themeToggle" class="btn" type="button" aria-label="Ganti tema">☾</button><span id="accountEmail" class="small muted"></span><button id="signOut" class="btn hidden">Keluar</button></div></div></header>
@@ -77,10 +102,10 @@
 <main id="appView" class="wrap hidden">
 <div class="layout">
 <aside class="side no-print">
-<button class="navitem active" data-page="overview">▦ Ringkasan</button>
-<button class="navitem" data-page="transactions">⇅ Transaksi</button>
-<button class="navitem" data-page="assistant">✦ Artha AI</button>
-<button class="navitem" data-page="profile">⚙ Profil</button>
+<button class="navitem active" data-page="overview">Ringkasan</button>
+<button class="navitem" data-page="transactions">Transaksi</button>
+<button class="navitem" data-page="assistant">Artha AI</button>
+<button class="navitem" data-page="profile">Profil</button>
 
 </aside>
 <div class="content">
@@ -91,8 +116,16 @@
 <section class="section"><div class="secthead"><h2>Pasar & harga emas Indonesia</h2><span class="small muted" id="marketFreshness">Memuat...</span></div>
 <div class="market-grid" id="marketCards"></div>
 <div class="market-tools">
-<div><label>Konversi kurs</label><div class="converter"><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select><input id="marketAmount" inputmode="decimal" value="1"><strong id="marketResult">Rp0</strong></div></div>
-<div class="rates" id="marketSourceNote">Harga ANTAM dan kurs terbaru dari provider.</div>
+<div class="fx-widget">
+  <div class="fx-widget-head"><div><strong>Konversi mata uang</strong><div class="small muted" style="margin-top:3px">Kurs indikatif terbaru dari pasar</div></div><button id="fxRefresh" class="btn" type="button">Perbarui kurs</button></div>
+  <div class="fx-fields">
+   <div class="field"><label for="marketCurrency">Dari</label><select id="marketCurrency"><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option><option>IDR</option></select></div>
+   <div class="field"><label for="marketTarget">Ke</label><select id="marketTarget"><option>IDR</option><option>USD</option><option>EUR</option><option>GBP</option><option>JPY</option><option>SGD</option><option>AUD</option><option>MYR</option></select></div>
+   <div class="field"><label for="marketAmount">Jumlah</label><input id="marketAmount" inputmode="decimal" value="1" aria-label="Jumlah yang akan dikonversi"></div>
+   <div class="fx-result"><label>Hasil konversi</label><strong id="marketResult">—</strong><div class="fx-pair-note" id="fxPairNote">Memuat kurs…</div></div>
+  </div>
+  <div class="fx-foot"><span id="marketFxStamp" aria-live="polite">Memuat kurs terbaru…</span><span id="marketSourceNote"><a href="https://exchangerate.dev/" target="_blank" rel="noopener noreferrer">Rates by exchangerate.dev</a></span></div>
+ </div>
 </div></section>
 <section class="section" id="zakatPanel">
 <div class="secthead"><h2>Kalkulator zakat</h2><span class="small muted">Nisab emas · 85 gram</span></div>
@@ -115,8 +148,8 @@
 <section class="section no-print">
 <div class="secthead"><h2>Catat transaksi</h2><span class="small muted">Manual · foto struk · suara</span></div>
 <div class="entry-tools no-print">
-<button id="voiceEntry" class="entry-tool" type="button">🎙 VoiceCash<span>Contoh: Pengeluaran 5.000 beli bahan baku</span></button>
-<label class="entry-tool" for="txReceipt">📷 Pindai foto struk<span>Ambil total pembayaran dan kategori.</span></label>
+<button id="voiceEntry" class="entry-tool" type="button">VoiceCash<span>Contoh: Pengeluaran 5.000 beli bahan baku</span></button>
+<label class="entry-tool" for="txReceipt">Foto struk<span>Deteksi total pembayaran dan kategori secara otomatis.</span></label>
 </div>
 <p class="small muted">Periksa hasil sebelum menyimpan.</p>
 <div id="txSmartStatus" class="smart-status hidden" aria-live="polite"></div>
@@ -127,7 +160,11 @@
 <div class="field"><label>Kategori</label><select id="txCategory"><option>Penjualan</option><option>Pendapatan Jasa</option><option>Bahan Baku</option><option>Operasional</option><option>Perlengkapan</option><option>Transportasi</option><option>Utilitas</option><option>Marketing</option><option>Gaji</option><option>Investasi</option><option>Lainnya</option></select></div>
 <div class="field full"><label>Deskripsi</label><input id="txDescription" required maxlength="120" placeholder="Contoh: Pembelian bahan baku"></div>
 <div class="field"><label>Tanggal transaksi</label><input id="txDate" type="date" required></div>
-<div class="field"><label>Foto struk</label><input id="txReceipt" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><span class="small muted">Periksa hasil pindai sebelum menyimpan.</span></div>
+<div class="field"><label for="txReceipt">Foto struk</label><input id="txReceipt" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"><span class="small muted">Foto diproses di perangkat. Total ditampilkan sebelum disimpan.</span></div>
+ <div id="receiptReview" class="receipt-review full hidden" aria-live="polite">
+  <div><div class="receipt-review-label">Total pembayaran terdeteksi</div><div id="receiptTotalPreview" class="receipt-review-total">—</div><div id="receiptSummary" class="receipt-review-meta">Hasil pindai akan tampil di sini.</div></div>
+  <div><div id="receiptConfidence" class="receipt-review-status">Menunggu foto</div><div class="receipt-actions"><button id="retryReceipt" class="btn" type="button">Pindai ulang</button></div></div>
+ </div>
 <div class="full"><div id="txFxText" class="rates">Konversi kurs akan ditampilkan di sini.</div><div id="txError" class="notice hidden"></div></div>
 <div class="full"><button id="saveTx" class="btn primary" type="submit">Simpan transaksi</button></div>
 </form></section>
@@ -159,11 +196,17 @@ const AUTH_REDIRECT_URL="https://arthanesia.github.io/app/";
 const KEY="sb_publishable_-kbqcW7De6AgeVLgBkTaPg_iD1EicRt";
 const sb=window.supabase?.createClient(URL,KEY);
 const $=id=>document.getElementById(id);
-let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null,aiAutoRequested=false,aiBusy=false,recoveryMode=false;
+let user=null,profile=null,rows=[],market=null,signup=false,transactionSource="manual",ocrWorkerPromise=null,aiAutoRequested=false,aiBusy=false,recoveryMode=false,activePage="overview",marketRefreshTimer=null,lastFxRequestAt=0,marketRequest=null;
 const money=v=>"Rp"+Math.round(Number(v||0)).toLocaleString("id-ID");
 function show(el){$(el).classList.remove("hidden")}function hide(el){$(el).classList.add("hidden")}
 function msg(id,text){$(id).textContent=text;show(id)}
-function setPage(name){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));if((name==="overview"||name==="transactions")&&user)loadMarket();if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}}
+function setPage(name){
+  activePage=name;document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));show("page-"+name);
+  document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===name));
+  if(user&&name==="overview"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"all",silent:!!market});
+  if(user&&name==="transactions"&&(!market||Date.now()-lastFxRequestAt>120000))loadMarket({scope:"fx",silent:!!market});
+  if(name==="assistant"&&user&&!aiAutoRequested){aiAutoRequested=true;runAiAnalysis("Analisis otomatis kondisi keuangan saya bulan ini. Berikan kondisi usaha, temuan utama, risiko beserta levelnya, peluang perbaikan, dan tiga prioritas tindakan.");}
+ }
 function showApp(){hide("authView");show("appView");show("signOut");$("accountEmail").textContent=user.email||"";setPage("overview")}
 function showAuth(text=""){show("authView");hide("appView");hide("signOut");if(text)msg("authMessage",text)}
 function showPasswordRecovery(){
@@ -186,37 +229,66 @@ function handleAuthStateChange(event,session){
  if(event==="SIGNED_OUT"){user=null;profile=null;rows=[];recoveryMode=false;showAuth();}
 }
 function formatMarketTime(value){
- const date=new Date(value||"");
- return Number.isNaN(date.getTime())?"":new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"}).format(date)+" WIB";
+ const date=new Date(value||"");return Number.isNaN(date.getTime())?"":new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"}).format(date)+" WIB";
 }
-async function loadMarket(){
- try{
-  const r=await fetch(URL+"/functions/v1/market-data?refresh="+Date.now(),{headers:{apikey:KEY},cache:"no-store"});
-  if(!r.ok)throw new Error("Feed pasar belum tersedia (HTTP "+r.status+").");
-  market=await r.json();
-  const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
-  const fxUpdated=market.fx?.updatedAt||market.rateUpdatedAt||"";
-  $("marketFreshness").textContent="ANTAM "+(antam.priceDate||"—")+" · Kurs "+(formatMarketTime(fxUpdated)||"—");
-  $("marketCards").innerHTML=[
-   ["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga konsumen"],
-   ["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali"],
-   ["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global"]
-  ].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
-  $("marketSourceNote").textContent="Emas: Logam Mulia ANTAM · Kurs: "+(market.fx?.source||market.rateSource||"provider")+" · Update kurs: "+(formatMarketTime(fxUpdated)||"belum tersedia")+".";
-  $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";
-  $("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";
-  $("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal belum tersedia");
-  $("goldZakatStatus").textContent=buyback?"Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.":"Harga buyback ANTAM belum tersedia.";
-  refreshFxLabel();refreshMarketTools();renderZakat();
- }catch(e){
-  $("marketFreshness").textContent=market?"Gagal memperbarui · data terakhir ditampilkan":"Harga pasar tidak tersedia";
-  if(!market)$("marketCards").innerHTML='<div class="market-card"><div class="label">Harga pasar</div><div class="value">Belum tersedia</div><div class="fresh">Periksa koneksi</div></div>';
-  $("goldZakatStatus").textContent=market?"Tidak dapat mengambil data baru. Data terakhir tetap digunakan.":(e.message||"Harga emas sementara tidak tersedia.");
-  renderZakat();
- }
+function fxFreshnessLabel(){
+ const fx=market?.fx||{},delay=Number(fx.delaySeconds||0);
+ if(fx.stale)return "Data kurs tertunda";
+ if(fx.source==="open.er-api.com"||fx.sourceType==="ecb_daily"||fx.sourceType==="market_daily")return "Referensi harian";
+ if(fx.source==="exchangerate.dev")return delay>0?"Intraday · delay "+Math.ceil(delay/60)+" menit":"Intraday · pasar";
+ return "Kurs referensi";
+}
+function updateFxPresentation(){
+ const fx=market?.fx||{},updated=fx.updatedAt||market?.rateUpdatedAt||"";
+ if($("marketFxStamp"))$("marketFxStamp").textContent=(updated?formatMarketTime(updated):"Waktu observasi belum tersedia")+" · "+fxFreshnessLabel();
+ if($("marketSourceNote"))$("marketSourceNote").innerHTML=fx.source==="exchangerate.dev"?'<a href="https://exchangerate.dev/" target="_blank" rel="noopener noreferrer">Rates by exchangerate.dev</a> · kurs indikatif, bukan kurs penyelesaian transaksi.':'Sumber cadangan: open.er-api.com · referensi harian.';
+ refreshFxLabel();refreshMarketTools();
+}
+async function loadMarket({scope="all",silent=false}={}){
+ if(marketRequest)return marketRequest;
+ marketRequest=(async()=>{
+  try{
+   if(!silent)$("marketFreshness").textContent="Memperbarui data pasar…";
+   const endpoint=URL+"/functions/v1/market-data?scope="+encodeURIComponent(scope)+"&t="+Date.now();
+   const response=await fetch(endpoint,{headers:{apikey:KEY},cache:"no-store"});
+   if(!response.ok)throw new Error("Feed pasar tidak tersedia (HTTP "+response.status+").");
+   const incoming=await response.json();if(incoming.error)throw new Error(incoming.error);
+   market=scope==="fx"&&market?{...market,...incoming,antam:market.antam,gold:market.gold}:incoming;lastFxRequestAt=Date.now();
+   if(scope==="all"){
+    const antam=market.antam||{},retail=Number(antam.retailInclTaxIdrPerGram||antam.retailIdrPerGram||0),buyback=Number(antam.buybackIdrPerGram||0);
+    $("marketCards").innerHTML=[["ANTAM · Harga ritel 1 gram",retail?money(retail):"Tidak tersedia","Harga konsumen"],["ANTAM · Buyback",buyback?money(buyback):"Tidak tersedia","Harga jual kembali"],["Emas spot global",Number(market.gold?.spotIdrPerGram||0)?money(market.gold.spotIdrPerGram):"Tidak tersedia","Referensi global"]].map(([label,value,note])=>'<div class="market-card"><div class="label">'+escapeHtml(label)+'</div><div class="value">'+escapeHtml(value)+'</div><div class="fresh">'+escapeHtml(note)+'</div></div>').join("");
+    $("goldRetailValue").textContent=retail?money(retail):"Belum tersedia";$("goldBuybackValue").textContent=buyback?money(buyback):"Belum tersedia";$("goldPriceDate").textContent="ANTAM · "+(antam.priceDate||"tanggal belum tersedia");renderZakat();
+   }
+   const antam=market.antam||{};$("marketFreshness").textContent=(scope==="all"?"ANTAM "+(antam.priceDate||"—")+" · ":"")+"Kurs "+(formatMarketTime(market.fx?.updatedAt||market.rateUpdatedAt)||"—");
+   $("goldZakatStatus").textContent=Number(antam.buybackIdrPerGram||0)?"Nisab 85 gram · haul 1 tahun · kadar zakat 2,5%.":"Harga buyback ANTAM belum tersedia.";updateFxPresentation();
+  }catch(error){
+   $("marketFreshness").textContent=market?"Gagal memperbarui · data terakhir ditampilkan":"Data pasar tidak tersedia";
+   if($("marketFxStamp"))$("marketFxStamp").textContent="Tidak dapat memperbarui kurs. "+(market?"Data terakhir tetap ditampilkan.":"Periksa koneksi.");
+   if(!market)$("marketCards").innerHTML='<div class="market-card"><div class="label">Harga pasar</div><div class="value">Belum tersedia</div><div class="fresh">Periksa koneksi</div></div>';
+   if(scope==="all")$("goldZakatStatus").textContent=market?"Data harga terakhir tetap digunakan.":(error.message||"Harga emas sementara tidak tersedia.");
+   if(scope==="all")renderZakat();
+  }finally{marketRequest=null;}
+ })();return marketRequest;
 }
 function rateToIdr(currency){if(currency==="IDR")return 1;const unitsPerIdr=Number(market?.rates?.[currency]||0);return unitsPerIdr>0?1/unitsPerIdr:0}
-function refreshMarketTools(){const c=$("marketCurrency")?.value||"USD",a=Number(($("marketAmount")?.value||"0").replace(",",".")),r=rateToIdr(c);if($("marketResult"))$("marketResult").textContent=r?money(a*r):"—";}
+function parseLocalAmount(value){
+ let raw=String(value??"").trim().replace(/\s/g,"");
+ if(raw.includes(".")&&raw.includes(","))raw=raw.lastIndexOf(",")>raw.lastIndexOf(".")?raw.replace(/\./g,"").replace(",","."):raw.replace(/,/g,"");
+ else if(raw.includes(","))raw=raw.replace(",",".");
+ const amount=Number(raw);return Number.isFinite(amount)&&amount>=0?amount:0;
+}
+function formatConvertedCurrency(amount,currency){
+ if(!Number.isFinite(amount))return "—";if(currency==="IDR")return money(amount);
+ return currency+" "+amount.toLocaleString("id-ID",{minimumFractionDigits:0,maximumFractionDigits:2});
+}
+function convertCurrencyByIdrRates(amount,from,to,rates){const fromUnits=from==="IDR"?1:Number(rates?.[from]||0),toUnits=to==="IDR"?1:Number(rates?.[to]||0);return Number.isFinite(amount)&&fromUnits>0&&toUnits>0?amount*toUnits/fromUnits:null;}
+function refreshMarketTools(){
+ const from=$("marketCurrency")?.value||"USD",to=$("marketTarget")?.value||"IDR",amount=parseLocalAmount($("marketAmount")?.value||"0"),rates=market?.rates||{};
+ const converted=convertCurrencyByIdrRates(amount,from,to,rates),unit=convertCurrencyByIdrRates(1,from,to,rates);
+ if($("marketResult"))$("marketResult").textContent=converted===null?"—":formatConvertedCurrency(converted,to);
+ if($("fxPairNote"))$("fxPairNote").textContent=unit===null?"Pasangan kurs belum tersedia.":"1 "+from+" = "+formatConvertedCurrency(unit,to);
+}
+async function refreshMarketNow(){const button=$("fxRefresh");if(button.disabled)return;button.disabled=true;button.textContent="Memperbarui…";try{await loadMarket({scope:"fx",silent:true});}finally{button.disabled=false;button.textContent="Perbarui kurs";}}
 function renderZakat(){
  const buyback=Number(market?.antam?.buybackIdrPerGram||0);
  $("goldNisabValue").textContent=buyback?money(buyback*85):"—";
@@ -230,60 +302,119 @@ function renderZakat(){
  $("incomeZakatStatus").textContent=income.basis==="monthly"?"Nisab bulanan terpenuhi":income.basis==="annual"?"Nisab tahunan terpenuhi":"Belum mencapai nisab";
 }
 function refreshFxLabel(){const cur=$("txCurrency").value;const r=rateToIdr(cur);$("txFxText").textContent=cur==="IDR"?"Nominal dicatat dalam IDR.":r>0?"1 "+cur+" ≈ "+money(r)+". Nilai kurs dikunci ketika transaksi disimpan.":"Kurs "+cur+" belum tersedia."}
-function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.style.background=error?"#fff0f1":"#eaf4fb";el.style.color=error?"#a83b4c":"#285879";show("txSmartStatus")}
+function smartStatus(text,error=false){const el=$("txSmartStatus");el.textContent=text;el.classList.toggle("is-error",error);show("txSmartStatus")}
 function categoryFor(text,type="expense"){const t=String(text||"").toLowerCase();if(type==="income")return /jasa|servis|service|konsultasi|desain/.test(t)?"Pendapatan Jasa":"Penjualan";if(/bahan baku|tepung|gula|beras|kopi|susu|telur|daging|sayur|buah|bumbu|kemasan|plastik/.test(t))return "Bahan Baku";if(/bensin|solar|bbm|transport|parkir|tol|ojek|grab|gojek|kurir|ongkir/.test(t))return "Transportasi";if(/listrik|air|internet|wifi|telepon|pulsa|gas|pln/.test(t))return "Utilitas";if(/gaji|upah|honor|lembur|pegawai|karyawan/.test(t))return "Gaji";if(/iklan|ads|promosi|marketing|endorse|brosur|spanduk/.test(t))return "Marketing";if(/mesin|laptop|komputer|investasi|aset|renovasi/.test(t))return "Investasi";if(/alat tulis|atk|perlengkapan|sabun|tisu|kertas|printer/.test(t))return "Perlengkapan";if(/sewa|operasional|administrasi|maintenance|perawatan|kebersihan/.test(t))return "Operasional";return "Lainnya"}
 const numberWords={nol:0,kosong:0,satu:1,se:1,dua:2,tiga:3,empat:4,lima:5,enam:6,tujuh:7,delapan:8,sembilan:9,sepuluh:10,sebelas:11};
 function wordsAmount(input){const words=String(input).toLowerCase().match(/sebelas|sepuluh|sembilan|delapan|tujuh|enam|lima|empat|tiga|dua|satu|se|nol|kosong|seratus|seribu|puluh|belas|ratus|ribu|sejuta|juta|miliar|milyar/g)||[];let total=0,group=0,pending=0,seen=false;for(const w of words){if(w in numberWords){pending+=numberWords[w];seen=true}else if(w==="belas"){group+=(pending||1)+10;pending=0;seen=true}else if(w==="puluh"){group+=(pending||1)*10;pending=0;seen=true}else if(w==="ratus"||w==="seratus"){group+=(pending||1)*100;pending=0;seen=true}else if(w==="seribu"||w==="ribu"){total+=(group+pending||1)*1000;group=0;pending=0;seen=true}else if(w==="sejuta"||w==="juta"){total+=(group+pending||1)*1000000;group=0;pending=0;seen=true}else if(w==="miliar"||w==="milyar"){total+=(group+pending||1)*1000000000;group=0;pending=0;seen=true}}return seen&&total+group+pending>0?total+group+pending:null}
-function parseMoneyText(text){const raw=String(text),scaled=[...raw.matchAll(/([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b/gi)].pop();if(scaled){const base=Number(scaled[1].replace(/[.,]/g,"")),unit=scaled[2].toLowerCase(),factor=unit==="rb"||unit==="ribu"?1000:unit==="jt"||unit==="juta"?1000000:1000000000;return Number.isFinite(base*factor)?base*factor:null}const lines=raw.split(/\n/),labelled=lines.filter(x=>/grand\s*total|\btotal\b|\bjumlah\b|\bamount\s*due\b|\btagihan\b/i.test(x)),source=labelled.length?labelled.join(" "):raw,nums=[...source.matchAll(/(?:rp\.?\s*)?([0-9][0-9.,]*)/gi)].map(m=>Number(m[1].replace(/[.,]/g,""))).filter(n=>n>0&&Number.isFinite(n));return nums.length?nums[nums.length-1]:wordsAmount(text)}
+function normalizeReceiptAmount(token){
+ let raw=String(token||"").replace(/[oO]/g,"0").replace(/[^\d.,]/g,"");
+ if(!raw)return null;
+ const separators=(raw.match(/[.,]/g)||[]).length,last=Math.max(raw.lastIndexOf("."),raw.lastIndexOf(",")),decimalDigits=last>=0?raw.length-last-1:0;
+ if(separators===1&&decimalDigits===2)raw=raw.slice(0,last);
+ else if(separators>1&&decimalDigits===2)raw=raw.slice(0,last);
+ else raw=raw.replace(/[.,]/g,"");
+ const number=Number(raw.replace(/\D/g,""));
+ return Number.isFinite(number)&&number>0?Math.round(number):null;
+}
+function parseMoneyText(text){
+ const raw=String(text||""),scaled=[...raw.matchAll(/([0-9][0-9.,]*)\s*(rb|ribu|jt|juta|miliar|milyar)\b/gi)].pop();
+ if(scaled){const base=normalizeReceiptAmount(scaled[1]),unit=scaled[2].toLowerCase(),factor=unit==="rb"||unit==="ribu"?1000:unit==="jt"||unit==="juta"?1000000:1000000000;return base?base*factor:null;}
+ const tokens=[...raw.matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)].map(match=>normalizeReceiptAmount(match[1])).filter(Boolean);
+ return tokens.length?tokens[0]:wordsAmount(raw);
+}
 function parseVoice(text){const raw=String(text||"").trim(),t=raw.toLowerCase(),income=/\b(pemasukan|pendapatan|penjualan|menerima|terima|masuk)\b/.test(t)&&!/\b(pengeluaran|beli|membeli|pembelian|bayar|belanja|biaya)\b/.test(t),type=income?"income":"expense",amount=parseMoneyText(raw);let title=raw.replace(/\b(?:rp|rupiah|idr)\b/ig," ").replace(/\b[0-9][0-9.,]*\b/g," ").replace(/\b(?:nol|kosong|se|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|belas|puluh|ratus|seratus|seribu|ribu|sejuta|juta|miliar|milyar)\b/ig," ").replace(/\b(?:pengeluaran|pemasukan|pendapatan|penjualan|catat|transaksi|sebesar|senilai|sejumlah|nominal|uang)\b/ig," ").replace(/\s+/g," ").trim().replace(/^[,.:;\-]+|[,.:;\-]+$/g,"");if(!title)title=income?"Pemasukan usaha":"Pengeluaran usaha";return {type,amount,title:title.charAt(0).toUpperCase()+title.slice(1),category:categoryFor(t,type)}}
-async function getOcrWorker(){if(!window.Tesseract)throw new Error("Modul OCR belum termuat. Periksa koneksi lalu muat ulang aplikasi.");if(!ocrWorkerPromise)ocrWorkerPromise=window.Tesseract.createWorker("ind");return ocrWorkerPromise}
+async function getOcrWorker(){
+ if(!window.Tesseract)throw new Error("Modul pindai belum termuat. Periksa koneksi lalu muat ulang aplikasi.");
+ if(!ocrWorkerPromise){
+  ocrWorkerPromise=window.Tesseract.createWorker("ind+eng").then(async worker=>{
+   await worker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1",user_defined_dpi:"300"});return worker;
+  }).catch(error=>{ocrWorkerPromise=null;throw error;});
+ }
+ return ocrWorkerPromise;
+}
+async function prepareReceiptImages(file){
+ if(!window.createImageBitmap)throw new Error("Browser belum mendukung pemrosesan foto. Perbarui browser atau isi nominal manual.");
+ const bitmap=await createImageBitmap(file),maxWidth=2400,maxHeight=3600;
+ let scale=Math.min(2.2,maxWidth/bitmap.width,maxHeight/bitmap.height);
+ if(bitmap.width*scale<1500)scale=Math.min(1.8,maxHeight/bitmap.height,1500/bitmap.width);
+ const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+ const ctx=canvas.getContext("2d",{willReadFrequently:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close?.();
+ const frame=ctx.getImageData(0,0,canvas.width,canvas.height),pixels=frame.data,histogram=new Uint32Array(256);let min=255,max=0;
+ for(let i=0;i<pixels.length;i+=4){const gray=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]);histogram[gray]++;if(gray<min)min=gray;if(gray>max)max=gray;}
+ const total=canvas.width*canvas.height;let sum=0;for(let i=0;i<256;i++)sum+=i*histogram[i];
+ let sumB=0,wB=0,maxVariance=0,threshold=150;
+ for(let i=0;i<256;i++){wB+=histogram[i];if(!wB)continue;const wF=total-wB;if(!wF)break;sumB+=i*histogram[i];const variance=wB*wF*Math.pow(sumB/wB-(sum-sumB)/wF,2);if(variance>maxVariance){maxVariance=variance;threshold=i;}}
+ const grayCanvas=document.createElement("canvas");grayCanvas.width=canvas.width;grayCanvas.height=canvas.height;const grayCtx=grayCanvas.getContext("2d"),grayFrame=grayCtx.createImageData(canvas.width,canvas.height),grayPixels=grayFrame.data,range=Math.max(1,max-min);
+ for(let i=0;i<pixels.length;i+=4){const gray=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]),value=Math.max(0,Math.min(255,Math.round((gray-min)*255/range)));grayPixels[i]=value;grayPixels[i+1]=value;grayPixels[i+2]=value;grayPixels[i+3]=255;}
+ grayCtx.putImageData(grayFrame,0,0);
+ const binaryCanvas=document.createElement("canvas");binaryCanvas.width=canvas.width;binaryCanvas.height=canvas.height;const binaryCtx=binaryCanvas.getContext("2d"),binaryFrame=binaryCtx.createImageData(canvas.width,canvas.height),binaryPixels=binaryFrame.data;
+ const adjustedThreshold=Math.round((threshold-min)*255/range);
+ for(let i=0;i<grayPixels.length;i+=4){const value=grayPixels[i]>adjustedThreshold?255:0;binaryPixels[i]=value;binaryPixels[i+1]=value;binaryPixels[i+2]=value;binaryPixels[i+3]=255;}binaryCtx.putImageData(binaryFrame,0,0);
+ return {gray:grayCanvas,binary:binaryCanvas};
+}
 function parseReceiptText(rawText){
- const lines=String(rawText||"").split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean);
- const ignore=/subtotal|sub\s*total|diskon|discount|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice|struk|receipt|telp|telepon|alamat|www\.|http|total\s*(?:item|barang|produk|qty)/i;
- const strongTotal=/grand\s*total|total\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\s*(?:bayar|dibayar)|amount\s*due|net\s*payable/i;
+ const lines=String(rawText||"").split(/\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean);
+ const ignored=/sub\s*total|discount|diskon|potongan|voucher|kupon|ppn|pajak|tax|kembali|change|tunai|cash|cashier|kasir|invoice\s*(?:no|number)|struk|receipt|telp|telepon|alamat|www\.|https?:|total\s*(?:item|barang|produk|qty|quantity)|jumlah\s*item/i;
+ const strong=/grand\s*total|total\s*(?:bayar|pembayaran|tagihan|akhir|belanja|transaksi|due|payable)|jumlah\s*(?:bayar|dibayar|tagihan)|amount\s*(?:due|payable)|net\s*payable/i;
+ const generic=/\btotal\b|\btagihan\b|\bjumlah\b|\bamount\s*due\b/i;
  const amountFrom=line=>{
-  const match=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)].find(m=>m[1].replace(/[^0-9Oo]/g,"").length>=3);
-  if(!match)return null;
-  const value=Number(match[1].replace(/[Oo]/g,"0").replace(/[^0-9]/g,""));
-  return Number.isFinite(value)&&value>0?value:null;
+  const matches=[...String(line||"").matchAll(/(?:rp\.?\s*|idr\s*)?([0-9][0-9.,Oo]*)/gi)];
+  for(const match of matches){const token=match[1].replace(/[oO]/g,"0");if(token.replace(/[^0-9]/g,"").length<3)continue;const value=normalizeReceiptAmount(token);if(value)return value;}return null;
  };
  const amountOnly=line=>{
-  const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[Oo]/g,"0").trim();
-  return /^[0-9][0-9.,\s]*$/.test(clean)&&clean.replace(/[^0-9]/g,"").length>=3;
+  const clean=String(line||"").replace(/\b(?:rp\.?|idr)\b/ig,"").replace(/[oO]/g,"0").replace(/[:\-]/g," ").trim();
+  return /^[0-9][0-9.,\s]*$/.test(clean)&&clean.replace(/[^0-9]/g,"").length>=3?normalizeReceiptAmount(clean):null;
  };
- let best=null,bestPriority=0,bestIndex=-1;
+ let best=null,bestPriority=0,bestIndex=-1,bestLabel="",bestLine="";
  lines.forEach((line,index)=>{
-  if(ignore.test(line))return;
-  const label=strongTotal.exec(line);
-  const priority=label?3:(/\btotal\b|\btagihan\b/i.test(line)?2:0);
+  if(ignored.test(line))return;
+  const strongMatch=strong.exec(line),genericMatch=generic.exec(line),priority=strongMatch?3:(genericMatch?2:0);
   if(!priority)return;
-  const tail=label?line.slice(label.index+label[0].length):line;
-  const value=amountFrom(tail)||(lines[index+1]&&amountOnly(lines[index+1])?amountFrom(lines[index+1]):null);
-  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){best=value;bestPriority=priority;bestIndex=index;}
+  const label=strongMatch||genericMatch,tail=line.slice(label.index+label[0].length);
+  const value=amountFrom(tail)||(lines[index+1]&&!ignored.test(lines[index+1])?amountOnly(lines[index+1]):null);
+  if(value&&(priority>bestPriority||(priority===bestPriority&&index>bestIndex))){
+   best=value;bestPriority=priority;bestIndex=index;bestLabel=label[0];bestLine=line+(line.slice(label.index+label[0].length).trim()?"":" "+(lines[index+1]||""));
+  }
  });
  const productLines=lines.filter((line,index)=>{
-  if(ignore.test(line)||strongTotal.test(line)||/\btotal\b|\btagihan\b/i.test(line)||!/\p{L}{3}/u.test(line))return false;
-  return !!amountFrom(line)||(!!lines[index+1]&&amountOnly(lines[index+1]));
+  if(ignored.test(line)||strong.test(line)||generic.test(line)||!/[\p{L}]{3}/u.test(line))return false;
+  return !!amountFrom(line)||(!!lines[index+1]&&!!amountOnly(lines[index+1]));
  });
- const category=categoryFor(productLines.join(" ")||lines.filter(x=>!ignore.test(x)).join(" "),"expense");
+ const category=categoryFor(productLines.join(" ")||lines.filter(line=>!ignored.test(line)).slice(0,8).join(" "),"expense");
  const titles={"Bahan Baku":"Belanja bahan baku","Transportasi":"Biaya transportasi","Utilitas":"Biaya utilitas","Gaji":"Biaya gaji","Marketing":"Biaya pemasaran","Investasi":"Pembelian aset","Perlengkapan":"Pembelian perlengkapan","Operasional":"Biaya operasional"};
- return {amount:best,title:titles[category]||"Transaksi dari struk",category,income:false};
+ return {amount:best,title:titles[category]||"Belanja dari struk",category,income:false,amountPriority:bestPriority,matchedLabel:bestLabel,matchedLine:bestLine};
 }
 function calculateIncomeZakat(monthIncome,yearIncome){
  const monthly=Math.max(0,Number(monthIncome)||0),annual=Math.max(0,Number(yearIncome)||0);
  const monthlyEligible=monthly>=7640144,annualEligible=annual>=91681728;
  return {monthlyIncome:monthly,annualIncome:annual,monthlyEligible,annualEligible,eligible:monthlyEligible||annualEligible,zakatAmount:Math.round(monthlyEligible?monthly*.025:annualEligible?annual*.025:0),basis:monthlyEligible?"monthly":annualEligible?"annual":null};
 }
+function renderReceiptReview(parsed,confidence=0){
+ show("receiptReview");$("receiptTotalPreview").textContent=parsed.amount?money(parsed.amount):"Nominal belum terbaca";
+ $("receiptSummary").textContent=parsed.amount?parsed.title+" · "+parsed.category+(parsed.matchedLabel?" · label "+parsed.matchedLabel:""):"Foto terbaca, tetapi label TOTAL/TOTAL BAYAR belum ditemukan. Isi nominal secara manual.";
+ $("receiptConfidence").textContent=parsed.amount?(parsed.amountPriority===3?"Total dari label utama":"Perlu verifikasi")+(confidence>0?" · OCR "+Math.round(confidence)+"%":""):"Jangan simpan sebelum nominal diperiksa.";
+ $("receiptConfidence").classList.toggle("warning",!parsed.amount||parsed.amountPriority<3);
+}
+function receiptCandidateScore(candidate){const p=candidate.parsed;return(p.amount?1000:0)+(p.amountPriority||0)*120+Math.max(0,Math.min(100,candidate.confidence||0))*.35;}
 async function readReceipt(file){
  if(!file||!file.type.startsWith("image/"))throw new Error("Pilih foto struk JPG, PNG, atau WEBP.");
- smartStatus("Membaca foto struk di perangkat…");
- const worker=await getOcrWorker(),result=await worker.recognize(file),text=result?.data?.text||"";
- if(!text.trim())throw new Error("Teks struk tidak terbaca. Coba foto lebih terang dan lurus.");
- const parsed=parseReceiptText(text);
- $("txType").value="expense";$("txCategory").value=parsed.category;$("txDescription").value=parsed.title;
- $("txAmount").value=parsed.amount?String(parsed.amount):"";
- transactionSource="receipt";
- smartStatus(parsed.amount?"Struk terbaca. Saran: "+parsed.title+" · "+$("txCategory").value+" · "+money(parsed.amount)+". Periksa lalu simpan.":"Struk terbaca, tetapi nominal belum pasti. Isi nominal secara manual sebelum menyimpan.");
+ if(file.size>15*1024*1024)throw new Error("Ukuran foto maksimal 15 MB. Kompres foto atau ambil ulang.");
+ smartStatus("Menyiapkan foto dan meningkatkan keterbacaan teks…");
+ const variants=await prepareReceiptImages(file),worker=await getOcrWorker(),candidates=[],passes=[{image:variants.gray,mode:"6"},{image:variants.binary,mode:"11"}];
+ for(const pass of passes){
+  await worker.setParameters({tessedit_pageseg_mode:pass.mode,preserve_interword_spaces:"1",user_defined_dpi:"300"});
+  const result=await worker.recognize(pass.image,{rotateAuto:true}),text=result?.data?.text||"",confidence=Number(result?.data?.confidence||0);
+  if(text.trim())candidates.push({text,confidence,parsed:parseReceiptText(text)});
+  const best=candidates.slice().sort((a,b)=>receiptCandidateScore(b)-receiptCandidateScore(a))[0];
+  if(best?.parsed.amount&&best.parsed.amountPriority===3&&best.confidence>=72)break;
+  smartStatus("Membaca susunan total dan nominal…");
+ }
+ if(!candidates.length)throw new Error("Teks pada foto tidak terbaca. Ambil foto lebih terang, lurus, dan tidak terpotong.");
+ candidates.sort((a,b)=>receiptCandidateScore(b)-receiptCandidateScore(a));
+ const selected=candidates[0],parsed=selected.parsed;
+ $("txType").value="expense";$("txCategory").value=parsed.category;$("txDescription").value=parsed.title;$("txAmount").value=parsed.amount?String(parsed.amount):"";
+ transactionSource="receipt";renderReceiptReview(parsed,selected.confidence);
+ smartStatus(parsed.amount?"Total terdeteksi: "+money(parsed.amount)+". Periksa total dan kategori sebelum menyimpan.":"Foto terbaca, tetapi nominal total tidak dapat dipastikan. Nominal tidak ditebak; isi sendiri sebelum menyimpan.",!parsed.amount);
 }
 function startVoiceEntry(){const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){smartStatus("Voice input belum didukung browser ini. Gunakan aplikasi Android VoiceCash atau isi manual.",true);return}const recognition=new Speech();recognition.lang="id-ID";recognition.interimResults=false;recognition.maxAlternatives=1;recognition.onstart=()=>smartStatus("Mendengarkan… ucapkan jenis transaksi, nominal, dan keterangannya.");recognition.onresult=event=>{const spoken=event.results?.[0]?.[0]?.transcript||"",parsed=parseVoice(spoken);$("txType").value=parsed.type;$("txAmount").value=parsed.amount?String(parsed.amount):"";$("txDescription").value=parsed.title;$("txCategory").value=parsed.category;transactionSource="voice";smartStatus("Terdengar: “"+spoken+"” · "+(parsed.amount?money(parsed.amount):"Nominal belum dikenali")+" · "+parsed.category+". Periksa sebelum simpan.")};recognition.onerror=event=>smartStatus("VoiceCash gagal: "+(event.error||"coba lagi atau isi manual"),true);try{recognition.start()}catch(e){smartStatus(e.message||"VoiceCash tidak dapat dimulai.",true)}}
 async function loadProfile(){
@@ -401,7 +532,10 @@ document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",(
 $("txCurrency").addEventListener("change",refreshFxLabel);
  $("txReceipt").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Struk gagal dibaca.",true)}});
  $("voiceEntry").addEventListener("click",startVoiceEntry);
-$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);
+$("marketCurrency").addEventListener("change",refreshMarketTools);$("marketTarget").addEventListener("change",refreshMarketTools);$("marketAmount").addEventListener("input",refreshMarketTools);$("fxRefresh").addEventListener("click",refreshMarketNow);
+ $("retryReceipt").addEventListener("click",async()=>{const file=$("txReceipt").files?.[0];if(!file)return;try{await readReceipt(file)}catch(error){smartStatus(error.message||"Pindai ulang gagal.",true)}});
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&user&&(activePage==="overview"||activePage==="transactions")&&Date.now()-lastFxRequestAt>120000)loadMarket({scope:"fx",silent:true})});
+ if(marketRefreshTimer)clearInterval(marketRefreshTimer);marketRefreshTimer=setInterval(()=>{if(!document.hidden&&user&&(activePage==="overview"||activePage==="transactions"))loadMarket({scope:"fx",silent:true})},5*60*1000);
 $("searchTx").addEventListener("input",render);
 $("transactionRows").addEventListener("click",async e=>{
  const b=e.target.closest("[data-delete]");if(!b)return;
@@ -422,7 +556,7 @@ $("transactionForm").addEventListener("submit",async e=>{
    const source=transactionSource==="receipt"?"receipt":transactionSource==="voice"?"voice":"manual";
    const row={user_id:user.id,client_ref:crypto.randomUUID(),type:$("txType").value,amount:original,currency,amount_base:Math.round(original*rate),base_currency:"IDR",exchange_rate:rate,category:$("txCategory").value,description:$("txDescription").value.trim(),occurred_at:new Date(date+"T12:00:00+07:00").toISOString(),source,receipt_url:null};
    const {error}=await sb.from("transactions").insert(row);if(error)throw error;
-  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();transactionSource="manual";hide("txSmartStatus");
+  $("transactionForm").reset();$("txDate").value=new Date().toISOString().slice(0,10);$("txCurrency").value=profile?.base_currency||"IDR";refreshFxLabel();transactionSource="manual";hide("txSmartStatus");hide("receiptReview");
   await loadTransactions();
  }catch(error){msg("txError",error.message||"Transaksi gagal disimpan.")}
  finally{button.disabled=false;button.textContent="Simpan transaksi";}
