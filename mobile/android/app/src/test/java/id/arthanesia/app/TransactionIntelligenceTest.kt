@@ -325,4 +325,23 @@ class TransactionIntelligenceTest {
         val result = TransactionIntelligence.fromReceipt("TOTAL BAYAR Rp 33.000 KARTU 12345678")
         assertEquals(33_000L, result.amount)
     }
+
+    @Test
+    fun voiceAmountUsesFirstNumericValueBeforeItemQuantity() {
+        val result = TransactionIntelligence.fromVoice("pengeluaran 50000 beli 2 kilogram tepung")
+        assertEquals(50_000L, result.amount)
+        assertEquals("Bahan Baku", result.category)
+    }
+
+    @Test
+    fun receiptReadsCompactCurrencyPrefixOnFollowingLine() {
+        val receipt = """
+            TOKO MAKMUR
+            TOTAL BAYAR
+            RP33.000,00
+        """.trimIndent()
+
+        val result = TransactionIntelligence.fromReceipt(receipt)
+        assertEquals(33_000L, result.amount)
+    }
 }
