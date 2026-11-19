@@ -20,7 +20,7 @@ internal object TransactionIntelligence {
     private val locale = Locale("id", "ID")
 
     private val receiptTotalLabels = Regex(
-        "(?i)(grand\\s*total|total\\s*(?:bayar|pembayaran|akhir|tagihan)|jumlah\\s*(?:bayar|dibayar)|amount\\s*due|net\\s*payable|\\btagihan\\b|\\btotal\\b)"
+        "(?i)(grand\\s*total|total\\s*(?:bayar|pembayaran|akhir|tagihan|belanja|transaksi|payment)|jumlah\\s*(?:bayar|dibayar|pembayaran)|amount\\s*(?:due|payable)|net\\s*payable|\\btagihan\\b|\\btotal\\b)"
     )
     private val subtotalLabels = Regex("(?i)(sub\\s*total|subtotal|total\\s*sebelum)")
     private val numericAmount = Regex("(?i)(?:rp\\.?\\s*|idr\\s*)?([0-9][0-9.,Oo]*)")
@@ -113,7 +113,7 @@ internal object TransactionIntelligence {
 
     private fun parseReceiptAmount(lines: List<String>): Long? {
         val priorityLabel = Regex(
-            "(?i)(grand\\s*total|total\\s*(?:pembayaran|bayar|akhir|tagihan)|jumlah\\s*(?:dibayar|bayar)|amount\\s*due|net\\s*payable)"
+            "(?i)(grand\\s*total|total\\s*(?:pembayaran|bayar|akhir|tagihan|belanja|transaksi|payment)|jumlah\\s*(?:yang\\s*)?(?:dibayar|bayar|pembayaran)|amount\\s*(?:due|payable)|net\\s*payable)"
         )
         val anyTotalLabel = Regex("(?i)\\btotal\\b|\\btagihan\\b")
         var bestPriority = 0
@@ -121,7 +121,9 @@ internal object TransactionIntelligence {
         var bestAmount: Long? = null
 
         lines.forEachIndexed { index, line ->
-            if (subtotalLabels.containsMatchIn(line) || ignoredReceiptLine.containsMatchIn(line)) {
+            if (subtotalLabels.containsMatchIn(line) ||
+                (ignoredReceiptLine.containsMatchIn(line) && !receiptTotalLabels.containsMatchIn(line))
+            ) {
                 return@forEachIndexed
             }
             val strongLabel = priorityLabel.find(line)
@@ -152,7 +154,24 @@ internal object TransactionIntelligence {
         return bestAmount
     }
 
-    private fun digitsToLong(raw: String): Long? = raw.replace('O', '0').replace('o', '0').filter { it.isDigit() }.toLongOrNull()
+    private fun digitsToLong(raw: String): Long? {
+        val normalized = raw.replace('O', '0').replace('o', '0').trim()
+        val lastDot = normalized.lastIndexOf('.')
+        val lastComma = normalized.lastIndexOf(',')
+        val lastSeparator = maxOf(lastDot, lastComma)
+        val separatorCount = normalized.count { it == '.' || it == ',' }
+        val trailingDigits = if (lastSeparator >= 0) {
+            normalized.substring(lastSeparator + 1).count { it.isDigit() }
+        } else 0
+
+        // Rupiah is stored as an integer. Drop a decimal suffix, but preserve
+        // Indonesian thousands separators (33.000) and mixed formats (33.000,00).
+        val hasDecimalSuffix = lastSeparator >= 0 && trailingDigits in 1..2 &&
+            (separatorCount == 1 || separatorCount > 1)
+        val integerPart = if (hasDecimalSuffix) normalized.substring(0, lastSeparator) else normalized
+        val digits = integerPart.filter { it.isDigit() }
+        return digits.toLongOrNull()
+    }
 
     private fun cleanVoiceTitle(raw: String): String {
         var value = raw.lowercase(locale)
